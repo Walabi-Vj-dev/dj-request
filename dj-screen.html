@@ -3,17 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DJ Screen 🎛️ v2</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
+<title>DJ Panel 🎛️</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --pink:#ff2d9b;--cyan:#00f5ff;--yellow:#ffe600;
-  --dark:#06040f;--bubble:#1a2a1a;--bubble2:#1e1035;
-}
+:root{--pink:#ff2d9b;--cyan:#00f5ff;--dark:#06040f}
 html,body{height:100vh;overflow:hidden;background:var(--dark);font-family:'Outfit',sans-serif;color:#fff}
-
 .bg{position:fixed;inset:0;pointer-events:none;
   background:radial-gradient(ellipse 70% 60% at 0% 100%,rgba(0,245,255,0.08),transparent),
              radial-gradient(ellipse 50% 40% at 100% 0%,rgba(255,45,155,0.1),transparent)}
@@ -21,138 +16,105 @@ html,body{height:100vh;overflow:hidden;background:var(--dark);font-family:'Outfi
   background-image:linear-gradient(rgba(0,245,255,0.02) 1px,transparent 1px),
                    linear-gradient(90deg,rgba(0,245,255,0.02) 1px,transparent 1px);
   background-size:50px 50px}
+.layout{display:grid;grid-template-columns:260px 1fr;height:100vh;position:relative;z-index:1}
 
-/* Layout: sidebar left + chat right */
-.layout{display:grid;grid-template-columns:300px 1fr;height:100vh;position:relative;z-index:1}
-
-/* ── SIDEBAR ── */
-.sidebar{background:rgba(0,0,0,0.55);border-right:1px solid rgba(255,255,255,0.06);
-  display:flex;flex-direction:column;overflow:hidden;padding:0;height:100vh}
-
-.side-header{padding:24px 20px 18px;border-bottom:1px solid rgba(255,255,255,0.06)}
-.dj-logo{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:0.04em;
+/* SIDEBAR */
+.sidebar{background:rgba(0,0,0,0.6);border-right:1px solid rgba(255,255,255,0.06);
+  display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.side-header{padding:20px 16px 14px;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0}
+.dj-logo{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:0.04em;
   background:linear-gradient(135deg,var(--pink),var(--cyan));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
-.dj-sub{font-size:11px;color:rgba(255,255,255,0.3);letter-spacing:0.1em;text-transform:uppercase;margin-top:3px}
-
-.stat-pills{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
-.pill{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase}
+.dj-sub{font-size:10px;color:rgba(255,255,255,0.3);letter-spacing:0.1em;text-transform:uppercase;margin-top:2px}
+.stat-pills{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.pill{padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase}
 .pill-pink{background:rgba(255,45,155,0.15);color:var(--pink);border:1px solid rgba(255,45,155,0.3)}
-.pill-cyan{background:rgba(0,245,255,0.1);color:var(--cyan);border:1px solid rgba(0,245,255,0.25)}
 .pill-green{background:rgba(34,197,94,0.1);color:#22c55e;border:1px solid rgba(34,197,94,0.25)}
-
-.chart-section{flex:1;overflow-y:auto;padding:18px 16px;min-height:0}
+.chart-section{flex:1;overflow-y:auto;padding:14px 16px;min-height:0}
 .chart-section::-webkit-scrollbar{display:none}
-.section-title{font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;
-  color:rgba(255,255,255,0.25);margin-bottom:12px}
+.section-title{font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:10px}
+.chart-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.chart-label{font-size:10px;color:rgba(255,255,255,0.45);min-width:70px;text-align:right;line-height:1.2}
+.chart-track{flex:1;height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden}
+.chart-fill{height:100%;border-radius:3px;transition:width .7s}
+.chart-n{font-size:10px;font-weight:700;color:rgba(255,255,255,0.3);min-width:14px;text-align:right}
 
-.chart-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
-.chart-label{font-size:11px;color:rgba(255,255,255,0.45);min-width:78px;text-align:right;line-height:1.2}
-.chart-track{flex:1;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden}
-.chart-fill{height:100%;border-radius:3px;transition:width .7s cubic-bezier(.4,0,.2,1)}
-.chart-n{font-size:11px;font-weight:700;color:rgba(255,255,255,0.3);min-width:16px;text-align:right}
+/* LOGO — tiny thumbnail */
+.logo-section{padding:10px 16px;border-top:1px solid rgba(255,255,255,0.06);flex-shrink:0}
+.logo-title{font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:8px}
+.logo-row{display:flex;align-items:center;gap:8px}
+.logo-thumb{width:50px;height:38px;border-radius:6px;object-fit:contain;flex-shrink:0;
+  background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);display:none}
+.logo-thumb.show{display:block}
+.logo-btns{display:flex;flex-direction:column;gap:5px;flex:1;min-width:0}
+.btn-logo{padding:7px;border-radius:8px;border:1px dashed rgba(0,245,255,0.3);
+  background:rgba(0,245,255,0.05);color:rgba(0,245,255,0.7);
+  font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;width:100%}
+.btn-logo:hover{background:rgba(0,245,255,0.12);color:#00f5ff}
+.btn-remove{padding:6px;border-radius:8px;border:1px solid rgba(255,45,155,0.2);
+  background:none;color:rgba(255,45,155,0.4);font-family:'Outfit',sans-serif;font-size:11px;
+  font-weight:700;cursor:pointer;transition:all .2s;display:none;width:100%}
+.btn-remove.show{display:block}
+.btn-remove:hover{background:rgba(255,45,155,0.1);color:var(--pink)}
+#logo-file-input{display:none}
 
-.dj-actions{padding:16px;border-top:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;gap:8px}
-.act-btn{width:100%;padding:10px;border-radius:10px;border:none;font-family:'Outfit',sans-serif;
-  font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;transition:all .2s}
+/* ACTIONS */
+.dj-actions{padding:12px 16px;border-top:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.act-btn{width:100%;padding:9px;border-radius:8px;border:none;font-family:'Outfit',sans-serif;
+  font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;transition:all .2s}
 .btn-clear{background:rgba(255,45,155,0.1);color:var(--pink);border:1px solid rgba(255,45,155,0.25)}
 .btn-clear:hover{background:rgba(255,45,155,0.2)}
-.btn-clearall{background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.35);border:1px solid rgba(255,255,255,0.08)}
-.btn-clearall:hover{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.6)}
+.btn-clearall{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.3);border:1px solid rgba(255,255,255,0.08)}
+.btn-clearall:hover{background:rgba(255,255,255,0.09);color:rgba(255,255,255,0.6)}
 
-/* ── CHAT ── */
+/* CHAT */
 .chat-wrap{display:flex;flex-direction:column;height:100vh;overflow:hidden}
-
-.chat-topbar{padding:18px 24px 14px;border-bottom:1px solid rgba(255,255,255,0.05);
-  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
-  background:rgba(0,0,0,0.3)}
-.topbar-left{display:flex;align-items:center;gap:12px}
-.wa-icon{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#128c7e,#25d366);
-  display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
-.chat-name{font-size:15px;font-weight:700}
-.chat-online{font-size:12px;color:#22c55e;margin-top:1px}
-.status-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;
-  box-shadow:0 0 6px #22c55e;display:inline-block;margin-right:5px;animation:blink 2s ease-in-out infinite}
+.chat-topbar{padding:16px 22px 12px;border-bottom:1px solid rgba(255,255,255,0.05);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:rgba(0,0,0,0.3)}
+.topbar-left{display:flex;align-items:center;gap:10px}
+.wa-icon{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#128c7e,#25d366);
+  display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.chat-name{font-size:14px;font-weight:700}
+.chat-online{font-size:11px;color:#22c55e;margin-top:1px}
+.status-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;box-shadow:0 0 6px #22c55e;display:inline-block;margin-right:4px;animation:blink 2s ease-in-out infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
-
 .filter-tabs{display:flex;gap:6px}
-.ftab{padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.08);
-  background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.35);
-  font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.07em;
-  text-transform:uppercase;cursor:pointer;transition:all .2s}
+.ftab{padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.35);font-family:'Outfit',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;cursor:pointer;transition:all .2s}
 .ftab.on{background:rgba(0,245,255,0.1);border-color:rgba(0,245,255,0.3);color:var(--cyan)}
-
-/* messages */
-.messages{flex:1;overflow-y:auto;padding:24px 28px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth}
-.messages::-webkit-scrollbar{width:4px}
-.messages::-webkit-scrollbar-track{background:transparent}
-.messages::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:2px}
-
-/* WhatsApp-style bubble */
-.msg{display:flex;flex-direction:column;max-width:72%;animation:pop .35s cubic-bezier(.34,1.56,.64,1)}
-@keyframes pop{from{opacity:0;transform:scale(.85) translateY(10px)}to{opacity:1;transform:none}}
-.msg.incoming{align-self:flex-start}
-.msg.outgoing{align-self:flex-end}
-
-.bubble{padding:12px 16px;border-radius:18px;position:relative;word-break:break-word;line-height:1.45}
-.incoming .bubble{
-  background:linear-gradient(135deg,#1d3a2a 0%,#142818 100%);
-  border:1px solid rgba(37,211,102,0.15);
-  border-bottom-left-radius:4px}
-.outgoing .bubble{
-  background:linear-gradient(135deg,#2a1060 0%,#1c0a45 100%);
-  border:1px solid rgba(168,85,247,0.2);
-  border-bottom-right-radius:4px}
-.msg.done .bubble{opacity:.4;filter:grayscale(.6)}
-
-.sender{font-size:12px;font-weight:700;color:#25d366;margin-bottom:4px}
-.outgoing .sender{color:#a78bfa;text-align:right}
-
-.genre-tag{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;
-  font-size:11px;font-weight:700;letter-spacing:0.05em;margin-bottom:6px}
-
-.song-txt{font-size:20px;font-weight:700;color:#fff;line-height:1.2}
-.no-song{font-size:14px;color:rgba(255,255,255,0.45);font-style:italic}
-
-.meta-row{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:6px}
-.msg-time{font-size:10px;color:rgba(255,255,255,0.28)}
-.done-mark{font-size:11px;color:#00f5ff;font-weight:700}
-
-.tick-btn{position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;
-  border:1px solid rgba(255,255,255,0.12);background:rgba(0,0,0,0.3);
-  color:rgba(255,255,255,0.3);font-size:12px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;transition:all .2s}
-.tick-btn:hover{border-color:var(--cyan);color:var(--cyan)}
-.done-mark-abs{position:absolute;top:8px;right:8px;font-size:14px;color:var(--cyan);
-  text-shadow:0 0 8px var(--cyan)}
-
-.date-chip{text-align:center;font-size:11px;color:rgba(255,255,255,0.25);
-  margin:8px 0;letter-spacing:0.05em;user-select:none}
-
-.empty-chat{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  color:rgba(255,255,255,0.18);text-align:center;gap:12px}
-.empty-chat .big{font-size:52px}
-.empty-chat p{font-size:14px;line-height:1.8}
-
-/* sound wave deco top right */
-.wave-deco{display:flex;align-items:center;gap:3px;height:24px}
+.wave-deco{display:flex;align-items:center;gap:3px;height:20px}
 .wave-deco span{width:3px;border-radius:3px;background:rgba(255,45,155,0.6);animation:wav 0.9s ease-in-out infinite}
 .wave-deco span:nth-child(2){animation-delay:.1s;background:rgba(0,245,255,0.6)}
 .wave-deco span:nth-child(3){animation-delay:.2s}
 .wave-deco span:nth-child(4){animation-delay:.3s;background:rgba(0,245,255,0.6)}
-@keyframes wav{0%,100%{height:6px}50%{height:22px}}
-
-.new-badge{background:var(--pink);color:#fff;font-size:10px;font-weight:800;
-  padding:2px 8px;border-radius:10px;margin-left:6px;animation:fadeIn .3s}
-@keyframes fadeIn{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:none}}
+@keyframes wav{0%,100%{height:5px}50%{height:18px}}
+.messages{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth}
+.messages::-webkit-scrollbar{width:4px}
+.messages::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:2px}
+.msg{display:flex;flex-direction:column;max-width:72%;animation:pop .35s cubic-bezier(.34,1.56,.64,1)}
+@keyframes pop{from{opacity:0;transform:scale(.85) translateY(10px)}to{opacity:1;transform:none}}
+.msg.incoming{align-self:flex-start}
+.msg.outgoing{align-self:flex-end}
+.bubble{padding:12px 16px;border-radius:16px;position:relative;word-break:break-word;line-height:1.45}
+.incoming .bubble{background:linear-gradient(135deg,#1d3a2a,#142818);border:1px solid rgba(37,211,102,0.15);border-bottom-left-radius:4px}
+.outgoing .bubble{background:linear-gradient(135deg,#2a1060,#1c0a45);border:1px solid rgba(168,85,247,0.2);border-bottom-right-radius:4px}
+.msg.done .bubble{opacity:.35;filter:grayscale(.6)}
+.sender{font-size:12px;font-weight:700;color:#25d366;margin-bottom:4px}
+.outgoing .sender{color:#a78bfa;text-align:right}
+.genre-tag{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-bottom:6px}
+.song-txt{font-size:18px;font-weight:700;color:#fff;line-height:1.2}
+.no-song{font-size:13px;color:rgba(255,255,255,0.4);font-style:italic}
+.meta-row{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:6px}
+.msg-time{font-size:10px;color:rgba(255,255,255,0.25)}
+.done-mark{font-size:11px;color:#00f5ff;font-weight:700}
+.tick-btn{width:26px;height:26px;border-radius:50%;border:1px solid rgba(255,255,255,0.12);background:rgba(0,0,0,0.3);color:rgba(255,255,255,0.3);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
+.tick-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+.empty-chat{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:rgba(255,255,255,0.15);text-align:center;gap:10px}
+.date-chip{text-align:center;font-size:11px;color:rgba(255,255,255,0.2);margin:4px 0}
 </style>
 </head>
 <body>
-<div class="bg"></div>
-<div class="grid"></div>
-
+<div class="bg"></div><div class="grid"></div>
 <div class="layout">
-  <!-- SIDEBAR -->
   <div class="sidebar">
     <div class="side-header">
       <div class="dj-logo">🎛️ Panel DJ</div>
@@ -162,32 +124,27 @@ html,body{height:100vh;overflow:hidden;background:var(--dark);font-family:'Outfi
         <div class="pill pill-green" id="stat-pend">0 pendientes</div>
       </div>
     </div>
-
     <div class="chart-section">
       <div class="section-title">Estilos más pedidos</div>
-      <div id="genre-chart"><div style="font-size:12px;color:rgba(255,255,255,0.2)">Esperando pedidos...</div></div>
+      <div id="genre-chart"><div style="font-size:11px;color:rgba(255,255,255,0.2)">Esperando pedidos...</div></div>
     </div>
-
-
     <div class="logo-section">
       <div class="logo-title">🖼 Logo del evento</div>
-      <img id="logo-preview" class="logo-preview" src="" alt="Logo">
-      <input type="file" id="logo-file-input" accept="image/*" onchange="uploadLogo(this)">
-      <button class="btn-logo" onclick="document.getElementById('logo-file-input').click()">
-        ⬆ Subir logo
-      </button>
-      <button class="btn-logo-remove" id="btn-remove-logo" onclick="removeLogo()">
-        ✕ Quitar logo
-      </button>
+      <div class="logo-row">
+        <img id="logo-thumb" class="logo-thumb" src="" alt="Logo">
+        <div class="logo-btns">
+          <input type="file" id="logo-file-input" accept="image/*" onchange="uploadLogo(this)">
+          <button class="btn-logo" onclick="document.getElementById('logo-file-input').click()">⬆ Subir logo</button>
+          <button class="btn-remove" id="btn-remove-logo" onclick="removeLogo()">✕ Quitar logo</button>
+        </div>
+      </div>
     </div>
-
     <div class="dj-actions">
       <button class="act-btn btn-clear" onclick="clearDone()">✓ Limpiar aceptados</button>
       <button class="act-btn btn-clearall" onclick="clearAll()">🗑 Borrar todo</button>
     </div>
   </div>
 
-  <!-- CHAT -->
   <div class="chat-wrap">
     <div class="chat-topbar">
       <div class="topbar-left">
@@ -197,7 +154,7 @@ html,body{height:100vh;overflow:hidden;background:var(--dark);font-family:'Outfi
           <div class="chat-online"><span class="status-dot"></span>en línea</div>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:16px">
+      <div style="display:flex;align-items:center;gap:14px">
         <div class="filter-tabs">
           <button class="ftab on" onclick="setFilter('all',this)">Todos</button>
           <button class="ftab" onclick="setFilter('pending',this)">Pendientes</button>
@@ -206,26 +163,17 @@ html,body{height:100vh;overflow:hidden;background:var(--dark);font-family:'Outfi
         <div class="wave-deco"><span></span><span></span><span></span><span></span></div>
       </div>
     </div>
-
     <div class="messages" id="messages">
-      <div class="empty-chat" id="empty">
-        <div class="big">💬</div>
-        <p>Los pedidos de los invitados<br>aparecerán aquí en tiempo real.<br><span style="font-size:12px;opacity:.6">Compartí el QR para que comiencen.</span></p>
-      </div>
+      <div class="empty-chat"><div style="font-size:40px;opacity:.2">💬</div><p style="font-size:13px;line-height:1.8">Los pedidos aparecerán aquí<br>en tiempo real.</p></div>
     </div>
   </div>
 </div>
 
-<!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref as dbRef, onValue, update, remove, query, orderByChild, set }
+import { getDatabase, ref, onValue, update, remove, set, query, orderByChild }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-// ══════════════════════════════════════════
-//  REEMPLAZÁ ESTOS VALORES con los de tu
-//  proyecto Firebase (ver README.md)
-// ══════════════════════════════════════════
 const firebaseConfig = {
   apiKey: "AIzaSyBw0CqhfhOvgslp2n6gBuxOPxq_uA2hZHk",
   authDomain: "pedi-tu-tema-al-dj.firebaseapp.com",
@@ -235,156 +183,88 @@ const firebaseConfig = {
   messagingSenderId: "191645194240",
   appId: "1:191645194240:web:541c2574d3ab80f1c660e5"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-const reqRef = dbRef(db,'requests');
+const reqRef = ref(db,'requests');
+const logoRef = ref(db,'config/logoUrl');
+let all={}, currentFilter='all';
 
-let all = {};
-let currentFilter = 'all';
-
-// listen realtime
-onValue(query(reqRef, orderByChild('ts')), snap => {
-  all = {};
-  snap.forEach(c => { all[c.key] = {...c.val(), id:c.key}; });
+onValue(query(reqRef,orderByChild('ts')), snap=>{
+  all={};
+  snap.forEach(c=>{ all[c.key]={...c.val(),id:c.key}; });
   render();
 });
 
-function setFilter(f, btn){
-  currentFilter = f;
+onValue(logoRef, snap=>{
+  const url=snap.val();
+  const thumb=document.getElementById('logo-thumb');
+  const btn=document.getElementById('btn-remove-logo');
+  if(url){thumb.src=url;thumb.classList.add('show');btn.classList.add('show');}
+  else{thumb.classList.remove('show');btn.classList.remove('show');}
+});
+
+function setFilter(f,btn){
+  currentFilter=f;
   document.querySelectorAll('.ftab').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  render();
+  btn.classList.add('on'); render();
 }
-window.setFilter = setFilter;
+window.setFilter=setFilter;
 
 function render(){
-  const list = Object.values(all);
-  const total = list.length;
-  const pend = list.filter(r=>!r.done).length;
-  document.getElementById('stat-total').textContent = total + (total===1?' pedido':' pedidos');
-  document.getElementById('stat-pend').textContent = pend + ' pendientes';
-  renderChart(list);
-  renderMessages(list);
+  const list=Object.values(all);
+  const pend=list.filter(r=>!r.done).length;
+  document.getElementById('stat-total').textContent=list.length+' pedidos';
+  document.getElementById('stat-pend').textContent=pend+' pendientes';
+  renderChart(list); renderMessages(list);
 }
 
 function renderChart(list){
-  const counts = {};
-  list.forEach(r=>{ if(r.genre) counts[r.genre]=(counts[r.genre]||{n:0,c:r.genreColor,e:r.genreEmoji||''}), counts[r.genre].n++; });
-  const sorted = Object.entries(counts).sort((a,b)=>b[1].n-a[1].n).slice(0,6);
-  const max = sorted[0]?.[1].n||1;
-  const el = document.getElementById('genre-chart');
-  if(!sorted.length){el.innerHTML='<div style="font-size:12px;color:rgba(255,255,255,0.2)">Esperando pedidos...</div>';return;}
-  el.innerHTML = sorted.map(([g,d])=>`
-    <div class="chart-row">
-      <div class="chart-label">${d.e} ${g}</div>
-      <div class="chart-track"><div class="chart-fill" style="width:${Math.round(d.n/max*100)}%;background:${d.c}"></div></div>
-      <div class="chart-n">${d.n}</div>
-    </div>`).join('');
+  const counts={};
+  list.forEach(r=>{if(r.genre){if(!counts[r.genre])counts[r.genre]={n:0,c:r.genreColor,e:r.genreEmoji||''};counts[r.genre].n++;}});
+  const sorted=Object.entries(counts).sort((a,b)=>b[1].n-a[1].n).slice(0,6);
+  const max=sorted[0]?.[1].n||1;
+  const el=document.getElementById('genre-chart');
+  if(!sorted.length){el.innerHTML='<div style="font-size:11px;color:rgba(255,255,255,0.2)">Esperando pedidos...</div>';return;}
+  el.innerHTML=sorted.map(([g,d])=>`<div class="chart-row"><div class="chart-label">${d.e} ${g}</div><div class="chart-track"><div class="chart-fill" style="width:${Math.round(d.n/max*100)}%;background:${d.c}"></div></div><div class="chart-n">${d.n}</div></div>`).join('');
 }
 
 function renderMessages(list){
-  const el = document.getElementById('messages');
-  let filtered = list;
-  if(currentFilter==='pending') filtered = list.filter(r=>!r.done);
-  if(currentFilter==='done') filtered = list.filter(r=>r.done);
-
+  const el=document.getElementById('messages');
+  let filtered=list;
+  if(currentFilter==='pending') filtered=list.filter(r=>!r.done);
+  if(currentFilter==='done') filtered=list.filter(r=>r.done);
   if(!filtered.length){
-    el.innerHTML=`<div class="empty-chat" id="empty"><div class="big">💬</div><p>${
-      currentFilter==='all'?'Los pedidos aparecerán aquí en tiempo real.<br><span style="font-size:12px;opacity:.6">Compartí el QR para comenzar.</span>'
-      :currentFilter==='pending'?'No hay pedidos pendientes.'
-      :'No hay temas aceptados todavía.'
-    }</p></div>`;
+    el.innerHTML=`<div class="empty-chat"><div style="font-size:40px;opacity:.2">💬</div><p style="font-size:13px">${currentFilter==='all'?'Los pedidos aparecerán aquí.':currentFilter==='pending'?'No hay pedidos pendientes.':'No hay temas aceptados todavía.'}</p></div>`;
     return;
   }
-
-  // group by date
-  let lastDate = null;
-  let html = '';
+  let lastDate='',html='';
   filtered.forEach((r,i)=>{
-    const isLeft = i % 2 === 0; // alternate sides for visual effect
-    const side = isLeft ? 'incoming' : 'outgoing';
-    const tsMs = r.ts || Date.now();
-    const d = new Date(tsMs);
-    const dateStr = d.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
-    if(dateStr !== lastDate){
-      html += `<div class="date-chip">Hoy — ${dateStr}</div>`;
-      lastDate = dateStr;
-    }
-    const timeStr = d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
-    const genreHtml = r.genre
-      ? `<div class="genre-tag" style="background:${r.genreColor}20;color:${r.genreColor};border:1px solid ${r.genreColor}40">
-           ${r.genreEmoji||'🎵'} ${r.genre}
-         </div>`
-      : '';
-    const songHtml = r.song
-      ? `<div class="song-txt">🎵 ${esc(r.song)}</div>`
-      : `<div class="no-song">Sin tema específico</div>`;
-    const doneHtml = r.done
-      ? `<span class="done-mark">✓ en pantalla</span>`
-      : `<button class="tick-btn" onclick="markDone('${r.id}')" title="Aceptar → mostrar en pantalla">▶</button>`;
-
-    html += `
-      <div class="msg ${side}${r.done?' done':''}">
-        <div class="bubble" style="position:relative;padding-right:${r.done?'16px':'42px'}">
-          <div class="sender">${esc(r.name||'Anónimo')}</div>
-          ${genreHtml}
-          ${songHtml}
-          <div class="meta-row">
-            <span class="msg-time">${timeStr}</span>
-            ${doneHtml}
-          </div>
-        </div>
-      </div>`;
+    const side=i%2===0?'incoming':'outgoing';
+    const d=new Date(r.ts||Date.now());
+    const dateStr=d.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
+    if(dateStr!==lastDate){html+=`<div class="date-chip">Hoy — ${dateStr}</div>`;lastDate=dateStr;}
+    const timeStr=d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+    const genreHtml=r.genre?`<div class="genre-tag" style="background:${r.genreColor}20;color:${r.genreColor};border:1px solid ${r.genreColor}40">${r.genreEmoji||'🎵'} ${esc(r.genre)}</div>`:'';
+    const songHtml=r.song?`<div class="song-txt">🎵 ${esc(r.song)}</div>`:`<div class="no-song">Sin tema específico</div>`;
+    const actionHtml=r.done?`<span class="done-mark">✓ en pantalla</span>`:`<button class="tick-btn" onclick="markDone('${r.id}')" title="Aceptar">▶</button>`;
+    html+=`<div class="msg ${side}${r.done?' done':''}"><div class="bubble" style="position:relative"><div class="sender">${esc(r.name||'Anónimo')}</div>${genreHtml}${songHtml}<div class="meta-row"><span class="msg-time">${timeStr}</span>${actionHtml}</div></div></div>`;
   });
-  el.innerHTML = html;
-  el.scrollTop = el.scrollHeight;
+  el.innerHTML=html;
+  el.scrollTop=el.scrollHeight;
 }
 
-function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-window.markDone = function(id){
-  update(dbRef(db,'requests/'+id),{done:true});
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+window.markDone=id=>update(ref(db,'requests/'+id),{done:true});
+window.clearDone=()=>Object.values(all).filter(r=>r.done).forEach(r=>remove(ref(db,'requests/'+r.id)));
+window.clearAll=()=>{if(confirm('¿Borrar TODOS los pedidos?'))Object.values(all).forEach(r=>remove(ref(db,'requests/'+r.id)));};
+window.uploadLogo=function(input){
+  const file=input.files[0];if(!file)return;
+  if(file.size>2*1024*1024){alert('Imagen muy grande. Máximo 2MB.');return;}
+  const reader=new FileReader();
+  reader.onload=async e=>await set(logoRef,e.target.result);
+  reader.readAsDataURL(file);input.value='';
 };
-
-window.clearDone = function(){
-  Object.values(all).filter(r=>r.done).forEach(r=>remove(dbRef(db,'requests/'+r.id)));
-};
-
-window.clearAll = function(){
-  if(!confirm('¿Borrar TODOS los pedidos? Esta acción no se puede deshacer.')) return;
-  Object.values(all).forEach(r=>remove(dbRef(db,'requests/'+r.id)));
-};
-
-// ── LOGO ──
-const logoRef = dbRef(db, 'config/logoUrl');
-
-// listen for logo changes from other sessions
-onValue(logoRef, snap => {
-  const url = snap.val();
-  const preview = document.getElementById('logo-preview');
-  const removeBtn = document.getElementById('btn-remove-logo');
-  if(url){ preview.src=url; preview.classList.add('show'); removeBtn.classList.add('show'); }
-  else { preview.classList.remove('show'); removeBtn.classList.remove('show'); }
-});
-
-window.uploadLogo = function(input){
-  const file = input.files[0];
-  if(!file) return;
-  if(file.size > 2*1024*1024){ alert('El archivo es muy grande. Usá una imagen menor a 2MB.'); return; }
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    const dataUrl = e.target.result;
-    await set(logoRef, dataUrl);
-  };
-  reader.readAsDataURL(file);
-  input.value = '';
-};
-
-window.removeLogo = async function(){
-  await set(logoRef, null);
-};
-
+window.removeLogo=()=>set(logoRef,null);
 </script>
 </body>
 </html>
