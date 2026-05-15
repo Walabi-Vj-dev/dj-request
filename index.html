@@ -141,13 +141,13 @@ import { getDatabase, ref, push, serverTimestamp } from "https://www.gstatic.com
 //  proyecto Firebase (ver README.md)
 // ══════════════════════════════════════════
 const firebaseConfig = {
-  apiKey: "TU_API_KEY",
-  authDomain: "TU_PROJECT.firebaseapp.com",
-  databaseURL: "https://TU_PROJECT-default-rtdb.firebaseio.com",
-  projectId: "TU_PROJECT",
-  storageBucket: "TU_PROJECT.appspot.com",
-  messagingSenderId: "TU_SENDER_ID",
-  appId: "TU_APP_ID"
+  apiKey: "AIzaSyBw0CqhfhOvgslp2n6gBuxOPxq_uA2hZHk",
+  authDomain: "pedi-tu-tema-al-dj.firebaseapp.com",
+  databaseURL: "https://pedi-tu-tema-al-dj-default-rtdb.firebaseio.com",
+  projectId: "pedi-tu-tema-al-dj",
+  storageBucket: "pedi-tu-tema-al-dj.firebasestorage.app",
+  messagingSenderId: "191645194240",
+  appId: "1:191645194240:web:541c2574d3ab80f1c660e5"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -210,7 +210,7 @@ window.submit = async function(){
     sel=null; document.querySelectorAll('.g-btn').forEach(x=>{x.classList.remove('sel');x.style.cssText=''});
     const t=document.getElementById('toast'); t.classList.add('show');
     setTimeout(()=>t.classList.remove('show'),3000);
-  }catch(e){alert('Error al enviar. Revisá la conexión.');}
+  }catch(e){console.error(e);alert('Error: ' + e.message);}
   btn.disabled=false; btn.textContent='🎤 Mandar pedido';
 };
 </script>
