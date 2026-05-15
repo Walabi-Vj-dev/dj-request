@@ -69,6 +69,18 @@ html,body{height:100vh;overflow:hidden;background:var(--dark);font-family:'Outfi
 .counter-label{font-size:11px;color:rgba(255,255,255,0.2);letter-spacing:0.1em;text-transform:uppercase}
 
 /* pulse bars deco */
+
+.logo-area{display:flex;align-items:center;justify-content:center;
+  flex:1;padding:40px;min-height:200px}
+.event-logo{max-width:100%;max-height:100%;object-fit:contain;
+  border-radius:16px;display:none;
+  animation:logoIn .6s cubic-bezier(.34,1.56,.64,1)}
+.event-logo.show{display:block}
+@keyframes logoIn{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:none}}
+.logo-placeholder{text-align:center;color:rgba(255,255,255,0.08);font-size:13px;
+  letter-spacing:0.08em;text-transform:uppercase}
+.logo-placeholder .icon{font-size:48px;margin-bottom:12px;opacity:.15}
+
 .wave{display:flex;align-items:flex-end;gap:3px;height:28px;margin-top:20px;justify-content:center}
 .wave span{width:4px;border-radius:4px;animation:wav 1s ease-in-out infinite}
 .wave span:nth-child(1){background:var(--pink);animation-delay:0s}
@@ -104,27 +116,17 @@ html,body{height:100vh;overflow:hidden;background:var(--dark);font-family:'Outfi
 .messages::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.07);border-radius:2px}
 
 /* WhatsApp bubbles */
-.msg{display:flex;flex-direction:column;max-width:65%;
+.msg{display:flex;flex-direction:column;width:100%;max-width:600px;
   animation:pop .45s cubic-bezier(.34,1.56,.64,1)}
-@keyframes pop{from{opacity:0;transform:scale(.8) translateY(16px)}to{opacity:1;transform:none}}
-.msg.left{align-self:flex-start}
-.msg.right{align-self:flex-end}
+@keyframes pop{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 
-.bubble{padding:14px 20px;border-radius:20px;position:relative;word-break:break-word}
-.left .bubble{
+.bubble{padding:14px 20px;border-radius:16px;border-bottom-left-radius:4px;
+  position:relative;word-break:break-word;
   background:linear-gradient(135deg,#1a3828 0%,#112318 100%);
   border:1px solid rgba(37,211,102,0.12);
-  border-bottom-left-radius:4px;
-  box-shadow:0 4px 20px rgba(0,0,0,0.3)}
-.right .bubble{
-  background:linear-gradient(135deg,#2d1265 0%,#1c0b42 100%);
-  border:1px solid rgba(168,85,247,0.15);
-  border-bottom-right-radius:4px;
   box-shadow:0 4px 20px rgba(0,0,0,0.3)}
 
-.sender{font-size:13px;font-weight:700;margin-bottom:6px}
-.left .sender{color:#25d366}
-.right .sender{color:#a78bfa;text-align:right}
+.sender{font-size:13px;font-weight:700;margin-bottom:6px;color:#25d366}
 
 .genre-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;
   border-radius:20px;font-size:12px;font-weight:700;letter-spacing:0.04em;margin-bottom:8px}
@@ -170,6 +172,15 @@ html,body{height:100vh;overflow:hidden;background:var(--dark);font-family:'Outfi
       </div>
     </div>
 
+
+      <div class="logo-area">
+        <img id="event-logo" class="event-logo" src="" alt="Logo del evento">
+        <div class="logo-placeholder" id="logo-ph">
+          <div class="icon">🖼</div>
+          Logo del evento
+        </div>
+      </div>
+
     <div class="chart-section">
       <div class="chart-title">Estilos más pedidos</div>
       <div id="genre-chart"><div style="font-size:12px;color:rgba(255,255,255,0.15)">Esperando pedidos...</div></div>
@@ -209,7 +220,7 @@ html,body{height:100vh;overflow:hidden;background:var(--dark);font-family:'Outfi
 <!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, onValue, query, orderByChild }
+import { getDatabase, ref, onValue, query, orderByChild, set }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const firebaseConfig = {
@@ -258,6 +269,17 @@ onValue(query(ref(db,'requests'), orderByChild('ts')), snap => {
   isFirst = false;
 });
 
+
+// ── LOGO LISTENER ──
+const logoRef = ref(db, 'config/logoUrl');
+onValue(logoRef, snap => {
+  const url = snap.val();
+  const img = document.getElementById('event-logo');
+  const ph = document.getElementById('logo-ph');
+  if(url){ img.src=url; img.classList.add('show'); ph.style.display='none'; }
+  else { img.classList.remove('show'); ph.style.display='block'; }
+});
+
 function renderChart(list){
   const counts = {};
   list.forEach(r=>{ if(r.genre) { if(!counts[r.genre]) counts[r.genre]={n:0,c:r.genreColor,e:r.genreEmoji||''}; counts[r.genre].n++; }});
@@ -290,7 +312,7 @@ function renderMessages(list, newIds){
   let lastDate = null;
   let html = '';
   list.forEach((r,i)=>{
-    const side = i%2===0 ? 'left' : 'right';
+    const side = '';
     const isNew = newIds.includes(r.id);
     const tsMs = r.ts || Date.now();
     const d = new Date(tsMs);
@@ -304,7 +326,7 @@ function renderMessages(list, newIds){
       ? `<div class="song-text">🎵 ${esc(r.song)}</div>`
       : `<div class="no-song">Sin tema específico</div>`;
 
-    html+=`<div class="msg ${side}${isNew?' new':''}">
+    html+=`<div class="msg${isNew?' new':''}">
       <div class="bubble">
         <div class="sender">${esc(r.name||'Anónimo')}</div>
         ${genreHtml}
