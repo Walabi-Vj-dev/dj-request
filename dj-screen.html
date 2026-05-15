@@ -169,7 +169,7 @@ html,body{height:100vh;overflow:hidden;background:var(--dark);font-family:'Outfi
     </div>
 
     <div class="dj-actions">
-      <button class="act-btn btn-clear" onclick="clearDone()">✓ Limpiar jugados</button>
+      <button class="act-btn btn-clear" onclick="clearDone()">✓ Limpiar aceptados</button>
       <button class="act-btn btn-clearall" onclick="clearAll()">🗑 Borrar todo</button>
     </div>
   </div>
@@ -188,7 +188,7 @@ html,body{height:100vh;overflow:hidden;background:var(--dark);font-family:'Outfi
         <div class="filter-tabs">
           <button class="ftab on" onclick="setFilter('all',this)">Todos</button>
           <button class="ftab" onclick="setFilter('pending',this)">Pendientes</button>
-          <button class="ftab" onclick="setFilter('done',this)">Jugados</button>
+          <button class="ftab" onclick="setFilter('done',this)">Aceptados</button>
         </div>
         <div class="wave-deco"><span></span><span></span><span></span><span></span></div>
       </div>
@@ -280,7 +280,7 @@ function renderMessages(list){
     el.innerHTML=`<div class="empty-chat" id="empty"><div class="big">💬</div><p>${
       currentFilter==='all'?'Los pedidos aparecerán aquí en tiempo real.<br><span style="font-size:12px;opacity:.6">Compartí el QR para comenzar.</span>'
       :currentFilter==='pending'?'No hay pedidos pendientes.'
-      :'No hay temas jugados todavía.'
+      :'No hay temas aceptados todavía.'
     }</p></div>`;
     return;
   }
@@ -308,8 +308,8 @@ function renderMessages(list){
       ? `<div class="song-txt">🎵 ${esc(r.song)}</div>`
       : `<div class="no-song">Sin tema específico</div>`;
     const doneHtml = r.done
-      ? `<span class="done-mark">✓✓ jugado</span>`
-      : `<button class="tick-btn" onclick="markDone('${r.id}')" title="Marcar como jugado">▶</button>`;
+      ? `<span class="done-mark">✓ en pantalla</span>`
+      : `<button class="tick-btn" onclick="markDone('${r.id}')" title="Aceptar → mostrar en pantalla">▶</button>`;
 
     html += `
       <div class="msg ${side}${r.done?' done':''}">

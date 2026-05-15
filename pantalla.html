@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎧 DJ Request — Pantalla</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --pink:#ff2d9b;--cyan:#00f5ff;--yellow:#ffe600;
+  --dark:#06040f;--dark2:#0d0920;
+}
+html,body{height:100vh;overflow:hidden;background:var(--dark);font-family:'Outfit',sans-serif;color:#fff}
+
+/* animated background */
+.bg{position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 60% 50% at 0% 100%,rgba(0,245,255,0.07),transparent),
+    radial-gradient(ellipse 50% 40% at 100% 0%,rgba(255,45,155,0.09),transparent),
+    radial-gradient(ellipse 40% 30% at 50% 50%,rgba(100,0,200,0.05),transparent)}
+.grid{position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(0,245,255,0.018) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(0,245,255,0.018) 1px,transparent 1px);
+  background-size:60px 60px}
+
+/* layout */
+.layout{display:grid;grid-template-columns:340px 1fr;height:100vh;position:relative;z-index:1}
+
+/* ── LEFT PANEL: branding + stats ── */
+.left{display:flex;flex-direction:column;justify-content:space-between;
+  padding:40px 32px;border-right:1px solid rgba(255,255,255,0.05);
+  background:rgba(0,0,0,0.4)}
+
+.brand{}
+.brand-title{font-family:'Bebas Neue',sans-serif;font-size:64px;letter-spacing:0.04em;line-height:0.9;
+  background:linear-gradient(135deg,var(--pink) 0%,var(--cyan) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.brand-sub{font-size:13px;color:rgba(255,255,255,0.35);letter-spacing:0.14em;
+  text-transform:uppercase;margin-top:10px}
+
+/* QR hint */
+.qr-section{margin-top:36px}
+.qr-box{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
+  border-radius:16px;padding:20px;text-align:center}
+.qr-label{font-size:11px;color:rgba(255,255,255,0.3);letter-spacing:0.1em;
+  text-transform:uppercase;margin-bottom:14px}
+.qr-placeholder{width:120px;height:120px;margin:0 auto;border-radius:10px;
+  background:#fff;display:flex;align-items:center;justify-content:center;
+  font-size:11px;color:#333;font-weight:600}
+.qr-url{font-size:11px;color:rgba(255,255,255,0.25);margin-top:10px;
+  word-break:break-all;line-height:1.5}
+
+/* genre chart */
+.chart-section{flex:1;display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:8px}
+.chart-title{font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;
+  color:rgba(255,255,255,0.2);margin-bottom:14px}
+.chart-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.chart-label{font-size:12px;color:rgba(255,255,255,0.4);min-width:90px;text-align:right;line-height:1.2}
+.chart-track{flex:1;height:5px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden}
+.chart-fill{height:100%;border-radius:3px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+.chart-n{font-size:11px;font-weight:700;color:rgba(255,255,255,0.25);min-width:16px}
+
+/* counter */
+.counter{text-align:center;margin-top:24px}
+.counter-num{font-family:'Bebas Neue',sans-serif;font-size:72px;line-height:1;
+  background:linear-gradient(135deg,var(--pink),var(--cyan));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.counter-label{font-size:11px;color:rgba(255,255,255,0.2);letter-spacing:0.1em;text-transform:uppercase}
+
+/* pulse bars deco */
+.wave{display:flex;align-items:flex-end;gap:3px;height:28px;margin-top:20px;justify-content:center}
+.wave span{width:4px;border-radius:4px;animation:wav 1s ease-in-out infinite}
+.wave span:nth-child(1){background:var(--pink);animation-delay:0s}
+.wave span:nth-child(2){background:rgba(255,45,155,0.6);animation-delay:.1s}
+.wave span:nth-child(3){background:var(--cyan);animation-delay:.2s}
+.wave span:nth-child(4){background:rgba(0,245,255,0.6);animation-delay:.3s}
+.wave span:nth-child(5){background:var(--pink);animation-delay:.4s}
+.wave span:nth-child(6){background:rgba(255,45,155,0.5);animation-delay:.5s}
+@keyframes wav{0%,100%{height:5px}50%{height:26px}}
+
+/* ── RIGHT PANEL: chat ── */
+.right{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+.chat-header{padding:22px 36px 16px;border-bottom:1px solid rgba(255,255,255,0.04);
+  display:flex;align-items:center;gap:14px;flex-shrink:0;background:rgba(0,0,0,0.25)}
+.chat-icon{width:46px;height:46px;border-radius:50%;
+  background:linear-gradient(135deg,#128c7e,#25d366);
+  display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.chat-name{font-size:18px;font-weight:700}
+.chat-status{font-size:12px;color:#22c55e;margin-top:2px;display:flex;align-items:center;gap:5px}
+.status-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;
+  box-shadow:0 0 6px #22c55e;animation:blink 2s ease-in-out infinite;display:inline-block}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.total-badge{margin-left:auto;padding:6px 16px;border-radius:20px;
+  background:rgba(255,45,155,0.12);border:1px solid rgba(255,45,155,0.25);
+  color:var(--pink);font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase}
+
+/* messages */
+.messages{flex:1;overflow-y:auto;padding:28px 36px;
+  display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth}
+.messages::-webkit-scrollbar{width:4px}
+.messages::-webkit-scrollbar-track{background:transparent}
+.messages::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.07);border-radius:2px}
+
+/* WhatsApp bubbles */
+.msg{display:flex;flex-direction:column;max-width:65%;
+  animation:pop .45s cubic-bezier(.34,1.56,.64,1)}
+@keyframes pop{from{opacity:0;transform:scale(.8) translateY(16px)}to{opacity:1;transform:none}}
+.msg.left{align-self:flex-start}
+.msg.right{align-self:flex-end}
+
+.bubble{padding:14px 20px;border-radius:20px;position:relative;word-break:break-word}
+.left .bubble{
+  background:linear-gradient(135deg,#1a3828 0%,#112318 100%);
+  border:1px solid rgba(37,211,102,0.12);
+  border-bottom-left-radius:4px;
+  box-shadow:0 4px 20px rgba(0,0,0,0.3)}
+.right .bubble{
+  background:linear-gradient(135deg,#2d1265 0%,#1c0b42 100%);
+  border:1px solid rgba(168,85,247,0.15);
+  border-bottom-right-radius:4px;
+  box-shadow:0 4px 20px rgba(0,0,0,0.3)}
+
+.sender{font-size:13px;font-weight:700;margin-bottom:6px}
+.left .sender{color:#25d366}
+.right .sender{color:#a78bfa;text-align:right}
+
+.genre-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;
+  border-radius:20px;font-size:12px;font-weight:700;letter-spacing:0.04em;margin-bottom:8px}
+
+.song-text{font-size:26px;font-weight:700;line-height:1.2;color:#fff}
+.no-song{font-size:16px;color:rgba(255,255,255,0.4);font-style:italic}
+
+.msg-time{font-size:11px;color:rgba(255,255,255,0.2);
+  text-align:right;margin-top:8px}
+
+/* empty */
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:rgba(255,255,255,0.12);text-align:center;gap:16px}
+.empty-icon{font-size:72px;opacity:.2}
+.empty p{font-size:18px;line-height:2}
+
+/* date chip */
+.date-chip{text-align:center;font-size:12px;color:rgba(255,255,255,0.18);
+  margin:6px 0;letter-spacing:0.05em;user-select:none}
+
+/* new message flash */
+@keyframes newflash{0%{box-shadow:0 0 0 0 rgba(0,245,255,0.5)}100%{box-shadow:0 0 0 24px rgba(0,245,255,0)}}
+.msg.new .bubble{animation:newflash .6s ease-out .4s}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="grid"></div>
+
+<div class="layout">
+  <!-- LEFT -->
+  <div class="left">
+    <div class="brand">
+      <div class="brand-title">DJ<br>Request</div>
+      <div class="brand-sub">Pedidos en vivo</div>
+
+      <div class="qr-section">
+        <div class="qr-box">
+          <div class="qr-label">📱 Escaneá y pedí tu tema</div>
+          <div id="qr-wrap"><div class="qr-placeholder">QR</div></div>
+          <div class="qr-url">walabi-vj-dev.github.io/dj-request/</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-section">
+      <div class="chart-title">Estilos más pedidos</div>
+      <div id="genre-chart"><div style="font-size:12px;color:rgba(255,255,255,0.15)">Esperando pedidos...</div></div>
+
+      <div class="counter">
+        <div class="counter-num" id="counter">0</div>
+        <div class="counter-label">pedidos en pantalla</div>
+      </div>
+      <div class="wave">
+        <span></span><span></span><span></span><span></span><span></span><span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: chat -->
+  <div class="right">
+    <div class="chat-header">
+      <div class="chat-icon">🎶</div>
+      <div>
+        <div class="chat-name">DJ Request Live</div>
+        <div class="chat-status"><span class="status-dot"></span>en línea</div>
+      </div>
+      <div class="total-badge" id="total-badge">0 pedidos</div>
+    </div>
+    <div class="messages" id="messages">
+      <div class="empty" id="empty">
+        <div class="empty-icon">🎵</div>
+        <p>Los pedidos aceptados<br>por el DJ aparecerán aquí.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- QR -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue, query, orderByChild }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBw0CqhfhOvgslp2n6gBuxOPxq_uA2hZHk",
+  authDomain: "pedi-tu-tema-al-dj.firebaseapp.com",
+  databaseURL: "https://pedi-tu-tema-al-dj-default-rtdb.firebaseio.com",
+  projectId: "pedi-tu-tema-al-dj",
+  storageBucket: "pedi-tu-tema-al-dj.firebasestorage.app",
+  messagingSenderId: "191645194240",
+  appId: "1:191645194240:web:541c2574d3ab80f1c660e5"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// Generate QR
+setTimeout(()=>{
+  const wrap = document.getElementById('qr-wrap');
+  wrap.innerHTML = '';
+  new QRCode(wrap, {
+    text: 'https://walabi-vj-dev.github.io/dj-request/',
+    width: 120, height: 120,
+    colorDark: '#000000', colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
+  });
+  const img = wrap.querySelector('img');
+  if(img) img.style.cssText='border-radius:8px;width:120px;height:120px';
+}, 600);
+
+let known = {};
+let isFirst = true;
+
+onValue(query(ref(db,'requests'), orderByChild('ts')), snap => {
+  const all = {};
+  snap.forEach(c => { all[c.key] = {...c.val(), id:c.key}; });
+
+  // only show "done" (accepted by DJ) requests
+  const accepted = Object.values(all).filter(r => r.done);
+
+  // detect new ones
+  const newIds = accepted.filter(r => !known[r.id]).map(r=>r.id);
+  accepted.forEach(r => known[r.id] = true);
+
+  renderChart(accepted);
+  renderMessages(accepted, isFirst ? [] : newIds);
+  isFirst = false;
+});
+
+function renderChart(list){
+  const counts = {};
+  list.forEach(r=>{ if(r.genre) { if(!counts[r.genre]) counts[r.genre]={n:0,c:r.genreColor,e:r.genreEmoji||''}; counts[r.genre].n++; }});
+  const sorted = Object.entries(counts).sort((a,b)=>b[1].n-a[1].n).slice(0,5);
+  const max = sorted[0]?.[1].n||1;
+  const el = document.getElementById('genre-chart');
+  if(!sorted.length){el.innerHTML='<div style="font-size:12px;color:rgba(255,255,255,0.15)">Esperando pedidos...</div>';return;}
+  el.innerHTML = sorted.map(([g,d])=>`
+    <div class="chart-row">
+      <div class="chart-label">${d.e} ${g}</div>
+      <div class="chart-track"><div class="chart-fill" style="width:${Math.round(d.n/max*100)}%;background:${d.c}"></div></div>
+      <div class="chart-n">${d.n}</div>
+    </div>`).join('');
+}
+
+function renderMessages(list, newIds){
+  const el = document.getElementById('messages');
+  const total = list.length;
+
+  document.getElementById('counter').textContent = total;
+  document.getElementById('total-badge').textContent = total + (total===1?' pedido':' pedidos');
+
+  if(!total){
+    el.innerHTML=`<div class="empty" id="empty"><div class="empty-icon">🎵</div><p>Los pedidos aceptados<br>por el DJ aparecerán aquí.</p></div>`;
+    return;
+  }
+
+  const wasAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+
+  let lastDate = null;
+  let html = '';
+  list.forEach((r,i)=>{
+    const side = i%2===0 ? 'left' : 'right';
+    const isNew = newIds.includes(r.id);
+    const tsMs = r.ts || Date.now();
+    const d = new Date(tsMs);
+    const dateStr = d.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
+    if(dateStr!==lastDate){ html+=`<div class="date-chip">Hoy — ${dateStr}</div>`; lastDate=dateStr; }
+    const timeStr = d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+    const genreHtml = r.genre
+      ? `<div class="genre-pill" style="background:${r.genreColor}20;color:${r.genreColor};border:1px solid ${r.genreColor}35">${r.genreEmoji||'🎵'} ${esc(r.genre)}</div>`
+      : '';
+    const songHtml = r.song
+      ? `<div class="song-text">🎵 ${esc(r.song)}</div>`
+      : `<div class="no-song">Sin tema específico</div>`;
+
+    html+=`<div class="msg ${side}${isNew?' new':''}">
+      <div class="bubble">
+        <div class="sender">${esc(r.name||'Anónimo')}</div>
+        ${genreHtml}
+        ${songHtml}
+        <div class="msg-time">${timeStr}</div>
+      </div>
+    </div>`;
+  });
+
+  el.innerHTML = html;
+  if(wasAtBottom || newIds.length) el.scrollTop = el.scrollHeight;
+}
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+</script>
+</body>
+</html>
