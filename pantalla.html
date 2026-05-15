@@ -25,7 +25,7 @@ html,body{height:100vh;overflow:hidden;background:var(--dark);font-family:'Outfi
   background-size:60px 60px}
 
 /* layout */
-.layout{display:grid;grid-template-columns:340px 1fr;height:100vh;position:relative;z-index:1}
+.layout{display:grid;grid-template-columns:280px 1fr 320px;height:100vh;position:relative;z-index:1}
 
 /* ── LEFT PANEL: branding + stats ── */
 .left{display:flex;flex-direction:column;justify-content:space-between;
@@ -71,15 +71,15 @@ html,body{height:100vh;overflow:hidden;background:var(--dark);font-family:'Outfi
 /* pulse bars deco */
 
 .logo-area{display:flex;align-items:center;justify-content:center;
-  flex:1;padding:40px;min-height:200px}
-.event-logo{max-width:100%;max-height:100%;object-fit:contain;
+  background:rgba(0,0,0,0.3);border-left:1px solid rgba(255,255,255,0.05);padding:32px}
+.event-logo{max-width:100%;max-height:80%;object-fit:contain;
   border-radius:16px;display:none;
   animation:logoIn .6s cubic-bezier(.34,1.56,.64,1)}
 .event-logo.show{display:block}
 @keyframes logoIn{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:none}}
-.logo-placeholder{text-align:center;color:rgba(255,255,255,0.08);font-size:13px;
+.logo-placeholder{text-align:center;color:rgba(255,255,255,0.06);font-size:12px;
   letter-spacing:0.08em;text-transform:uppercase}
-.logo-placeholder .icon{font-size:48px;margin-bottom:12px;opacity:.15}
+.logo-placeholder .icon{font-size:56px;margin-bottom:12px;opacity:.1}
 
 .wave{display:flex;align-items:flex-end;gap:3px;height:28px;margin-top:20px;justify-content:center}
 .wave span{width:4px;border-radius:4px;animation:wav 1s ease-in-out infinite}
@@ -173,14 +173,6 @@ html,body{height:100vh;overflow:hidden;background:var(--dark);font-family:'Outfi
     </div>
 
 
-      <div class="logo-area">
-        <img id="event-logo" class="event-logo" src="" alt="Logo del evento">
-        <div class="logo-placeholder" id="logo-ph">
-          <div class="icon">🖼</div>
-          Logo del evento
-        </div>
-      </div>
-
     <div class="chart-section">
       <div class="chart-title">Estilos más pedidos</div>
       <div id="genre-chart"><div style="font-size:12px;color:rgba(255,255,255,0.15)">Esperando pedidos...</div></div>
@@ -212,6 +204,16 @@ html,body{height:100vh;overflow:hidden;background:var(--dark);font-family:'Outfi
       </div>
     </div>
   </div>
+
+  <!-- Logo column -->
+  <div class="logo-area">
+    <img id="event-logo" class="event-logo" src="" alt="Logo del evento">
+    <div class="logo-placeholder" id="logo-ph">
+      <div class="icon">🖼</div>
+      <div>Logo del evento</div>
+    </div>
+  </div>
+
 </div>
 
 <!-- QR -->
