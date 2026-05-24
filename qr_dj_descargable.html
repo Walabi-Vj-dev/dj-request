@@ -1,0 +1,71 @@
+
+<style>
+  .qr-wrap{display:flex;flex-direction:column;align-items:center;padding:32px 24px;gap:20px}
+  .qr-card{background:#0a0a0a;border-radius:20px;padding:28px 28px 20px;display:flex;flex-direction:column;align-items:center;gap:14px;box-shadow:0 0 0 1px rgba(255,255,255,0.08)}
+  .qr-title{font-family:sans-serif;font-size:13px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#ff2d9b}
+  .qr-sub{font-size:11px;color:rgba(255,255,255,0.3);font-family:sans-serif;letter-spacing:0.06em}
+  .dl-btn{padding:12px 28px;border-radius:12px;border:none;background:linear-gradient(135deg,#ff2d9b,#9b1dea);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:sans-serif;letter-spacing:0.06em}
+  .dl-btn:hover{opacity:.9}
+</style>
+<div class="qr-wrap">
+  <div class="qr-card">
+    <div class="qr-title">🎧 Valentina - XV</div>
+    <canvas id="qr" width="200" height="200" style="border-radius:10px"></canvas>
+    <div class="qr-sub">walabi-vj-dev.github.io/dj-request/</div>
+  </div>
+  <button class="dl-btn" onclick="download()">⬇ Descargar QR</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+const url = 'https://walabi-vj-dev.github.io/dj-request/';
+const tmp = document.createElement('div');
+document.body.appendChild(tmp);
+new QRCode(tmp, {text:url, width:200, height:200, colorDark:'#000000', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.H});
+
+setTimeout(()=>{
+  const canvas = document.getElementById('qr');
+  const ctx = canvas.getContext('2d');
+  const src = tmp.querySelector('canvas') || tmp.querySelector('img');
+  if(src && src.tagName==='CANVAS'){
+    ctx.drawImage(src,0,0,200,200);
+  } else if(src){
+    src.onload = ()=>ctx.drawImage(src,0,0,200,200);
+    if(src.complete) ctx.drawImage(src,0,0,200,200);
+  }
+  tmp.remove();
+}, 600);
+
+function download(){
+  const canvas = document.getElementById('qr');
+  // Create a bigger canvas with branding for download
+  const out = document.createElement('canvas');
+  out.width = 400; out.height = 480;
+  const ctx = out.getContext('2d');
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0,0,400,480);
+  // white QR area
+  ctx.fillStyle = '#ffffff';
+  ctx.roundRect(75,70,250,250,12);
+  ctx.fill();
+  // draw QR
+  ctx.drawImage(canvas, 87, 82, 226, 226);
+  // title
+  ctx.fillStyle = '#ff2d9b';
+  ctx.font = 'bold 18px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('🎧 Valentina - XV', 200, 48);
+  // subtitle
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.font = '13px sans-serif';
+  ctx.fillText('Pedí tu tema — aparece en pantalla', 200, 360);
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.font = '11px sans-serif';
+  ctx.fillText('walabi-vj-dev.github.io/dj-request/', 200, 390);
+  // download
+  const a = document.createElement('a');
+  a.download = 'Valentina.png';
+  a.href = out.toDataURL('image/png');
+  a.click();
+}
+</script>
