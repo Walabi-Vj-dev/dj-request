@@ -108,6 +108,11 @@ html,body{height:100vh;overflow:hidden;background:var(--dark);font-family:'Outfi
 .done-mark{font-size:11px;color:#00f5ff;font-weight:700}
 .tick-btn{width:26px;height:26px;border-radius:50%;border:1px solid rgba(255,255,255,0.12);background:rgba(0,0,0,0.3);color:rgba(255,255,255,0.3);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
 .tick-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+.reject-btn{width:26px;height:26px;border-radius:50%;border:1px solid rgba(255,45,155,0.2);background:rgba(0,0,0,0.3);color:rgba(255,45,155,0.3);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
+.reject-btn:hover{border-color:var(--pink);color:var(--pink)}
+.msg.rejected .bubble{opacity:.3;filter:grayscale(.8);border-color:rgba(255,45,155,0.2)!important}
+.rejected-mark{font-size:11px;color:var(--pink);font-weight:700}
+.pill-red{background:rgba(255,45,155,0.1);color:var(--pink);border:1px solid rgba(255,45,155,0.25)}
 .empty-chat{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:rgba(255,255,255,0.15);text-align:center;gap:10px}
 .date-chip{text-align:center;font-size:11px;color:rgba(255,255,255,0.2);margin:4px 0}
 </style>
@@ -122,6 +127,7 @@ html,body{height:100vh;overflow:hidden;background:var(--dark);font-family:'Outfi
       <div class="stat-pills">
         <div class="pill pill-pink" id="stat-total">0 pedidos</div>
         <div class="pill pill-green" id="stat-pend">0 pendientes</div>
+        <div class="pill pill-red" id="stat-rej" style="display:none">0 rechazados</div>
       </div>
     </div>
     <div class="chart-section">
@@ -141,6 +147,7 @@ html,body{height:100vh;overflow:hidden;background:var(--dark);font-family:'Outfi
     </div>
     <div class="dj-actions">
       <button class="act-btn btn-clear" onclick="clearDone()">✓ Limpiar aceptados</button>
+      <button class="act-btn btn-clear" onclick="clearRejected()" style="border-color:rgba(255,45,155,0.25);color:var(--pink)">🚫 Limpiar rechazados</button>
       <button class="act-btn btn-clearall" onclick="clearAll()">🗑 Borrar todo</button>
     </div>
   </div>
@@ -159,6 +166,7 @@ html,body{height:100vh;overflow:hidden;background:var(--dark);font-family:'Outfi
           <button class="ftab on" onclick="setFilter('all',this)">Todos</button>
           <button class="ftab" onclick="setFilter('pending',this)">Pendientes</button>
           <button class="ftab" onclick="setFilter('done',this)">Aceptados</button>
+          <button class="ftab" onclick="setFilter('rejected',this)">🚫 No admitidos</button>
         </div>
         <div class="wave-deco"><span></span><span></span><span></span><span></span></div>
       </div>
@@ -209,12 +217,15 @@ function setFilter(f,btn){
   btn.classList.add('on'); render();
 }
 window.setFilter=setFilter;
-
 function render(){
   const list=Object.values(all);
-  const pend=list.filter(r=>!r.done).length;
+  const pend=list.filter(r=>!r.done&&!r.rejected).length;
+  const rej=list.filter(r=>r.rejected).length;
   document.getElementById('stat-total').textContent=list.length+' pedidos';
   document.getElementById('stat-pend').textContent=pend+' pendientes';
+  const rejPill=document.getElementById('stat-rej');
+  rejPill.textContent=rej+' rechazados';
+  rejPill.style.display=rej>0?'':'none';
   renderChart(list); renderMessages(list);
 }
 
@@ -231,10 +242,11 @@ function renderChart(list){
 function renderMessages(list){
   const el=document.getElementById('messages');
   let filtered=list;
-  if(currentFilter==='pending') filtered=list.filter(r=>!r.done);
+  if(currentFilter==='pending') filtered=list.filter(r=>!r.done&&!r.rejected);
   if(currentFilter==='done') filtered=list.filter(r=>r.done);
+  if(currentFilter==='rejected') filtered=list.filter(r=>r.rejected);
   if(!filtered.length){
-    el.innerHTML=`<div class="empty-chat"><div style="font-size:40px;opacity:.2">💬</div><p style="font-size:13px">${currentFilter==='all'?'Los pedidos aparecerán aquí.':currentFilter==='pending'?'No hay pedidos pendientes.':'No hay temas aceptados todavía.'}</p></div>`;
+    el.innerHTML=`<div class="empty-chat"><div style="font-size:40px;opacity:.2">💬</div><p style="font-size:13px">${currentFilter==='all'?'Los pedidos aparecerán aquí.':currentFilter==='pending'?'No hay pedidos pendientes.':currentFilter==='done'?'No hay temas aceptados todavía.':'No hay mensajes rechazados.'}</p></div>`;
     return;
   }
   let lastDate='',html='';
@@ -246,7 +258,10 @@ function renderMessages(list){
     const timeStr=d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
     const genreHtml=r.genre?`<div class="genre-tag" style="background:${r.genreColor}20;color:${r.genreColor};border:1px solid ${r.genreColor}40">${r.genreEmoji||'🎵'} ${esc(r.genre)}</div>`:'';
     const songHtml=r.song?`<div class="song-txt">🎵 ${esc(r.song)}</div>`:`<div class="no-song">Sin tema específico</div>`;
-    const actionHtml=r.done?`<span class="done-mark">✓ en pantalla</span>`:`<button class="tick-btn" onclick="markDone('${r.id}')" title="Aceptar">▶</button>`;
+    let actionHtml;
+    if(r.done) actionHtml=`<span class="done-mark">✓ en pantalla</span>`;
+    else if(r.rejected) actionHtml=`<span class="rejected-mark">🚫 rechazado</span>`;
+    else actionHtml=`<button class="tick-btn" onclick="markDone('${r.id}')" title="Aceptar → pantalla">▶</button><button class="reject-btn" onclick="markRejected('${r.id}')" title="Rechazar">✕</button>`;
     html+=`<div class="msg ${side}${r.done?' done':''}"><div class="bubble" style="position:relative"><div class="sender">${esc(r.name||'Anónimo')}</div>${genreHtml}${songHtml}<div class="meta-row"><span class="msg-time">${timeStr}</span>${actionHtml}</div></div></div>`;
   });
   el.innerHTML=html;
@@ -254,8 +269,10 @@ function renderMessages(list){
 }
 
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-window.markDone=id=>update(ref(db,'requests/'+id),{done:true});
+window.markDone=id=>update(ref(db,'requests/'+id),{done:true,rejected:false});
+window.markRejected=id=>update(ref(db,'requests/'+id),{rejected:true,done:false});
 window.clearDone=()=>Object.values(all).filter(r=>r.done).forEach(r=>remove(ref(db,'requests/'+r.id)));
+window.clearRejected=()=>Object.values(all).filter(r=>r.rejected).forEach(r=>remove(ref(db,'requests/'+r.id)));
 window.clearAll=()=>{if(confirm('¿Borrar TODOS los pedidos?'))Object.values(all).forEach(r=>remove(ref(db,'requests/'+r.id)));};
 window.uploadLogo=function(input){
   const file=input.files[0];if(!file)return;
