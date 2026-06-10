@@ -9,7 +9,7 @@
 </style>
 <div class="qr-wrap">
   <div class="qr-card">
-    <div class="qr-title">🎧 Valentina - XV</div>
+    <div class="qr-title">🎧 DJ Set</div>
     <canvas id="qr" width="200" height="200" style="border-radius:10px"></canvas>
     <div class="qr-sub">walabi-vj-dev.github.io/dj-request/</div>
   </div>
@@ -37,35 +37,52 @@ setTimeout(()=>{
 }, 600);
 
 function download(){
+  const name = window._eventName || 'DJ Set';
   const canvas = document.getElementById('qr');
-  // Create a bigger canvas with branding for download
   const out = document.createElement('canvas');
   out.width = 400; out.height = 480;
   const ctx = out.getContext('2d');
   ctx.fillStyle = '#0a0a0a';
   ctx.fillRect(0,0,400,480);
-  // white QR area
   ctx.fillStyle = '#ffffff';
   ctx.roundRect(75,70,250,250,12);
   ctx.fill();
-  // draw QR
   ctx.drawImage(canvas, 87, 82, 226, 226);
-  // title
   ctx.fillStyle = '#ff2d9b';
   ctx.font = 'bold 18px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('🎧 Valentina - XV', 200, 48);
-  // subtitle
+  ctx.fillText('🎧 ' + name, 200, 48);
   ctx.fillStyle = 'rgba(255,255,255,0.5)';
   ctx.font = '13px sans-serif';
   ctx.fillText('Pedí tu tema — aparece en pantalla', 200, 360);
   ctx.fillStyle = 'rgba(255,255,255,0.25)';
   ctx.font = '11px sans-serif';
   ctx.fillText('walabi-vj-dev.github.io/dj-request/', 200, 390);
-  // download
   const a = document.createElement('a');
-  a.download = 'Valentina.png';
+  a.download = name + '.png';
   a.href = out.toDataURL('image/png');
   a.click();
 }
+</script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyBw0CqhfhOvgslp2n6gBuxOPxq_uA2hZHk",
+  authDomain: "pedi-tu-tema-al-dj.firebaseapp.com",
+  databaseURL: "https://pedi-tu-tema-al-dj-default-rtdb.firebaseio.com",
+  projectId: "pedi-tu-tema-al-dj",
+  storageBucket: "pedi-tu-tema-al-dj.firebasestorage.app",
+  messagingSenderId: "191645194240",
+  appId: "1:191645194240:web:541c2574d3ab80f1c660e5"
+};
+const db = getDatabase(initializeApp(firebaseConfig));
+onValue(ref(db, 'config/eventName'), snap => {
+  const val = snap.val();
+  if (val) {
+    document.querySelector('.qr-title').textContent = '🎧 ' + val;
+    window._eventName = val;
+  }
+});
 </script>
