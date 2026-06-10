@@ -134,6 +134,17 @@ html,body{height:100vh;overflow:hidden;background:var(--dark);font-family:'Outfi
       <div class="section-title">Estilos más pedidos</div>
       <div id="genre-chart"><div style="font-size:11px;color:rgba(255,255,255,0.2)">Esperando pedidos...</div></div>
     </div>
+    <div class="logo-section" style="padding:10px 16px;border-top:1px solid rgba(255,255,255,0.06);flex-shrink:0">
+      <div class="logo-title">✏️ Nombre del evento</div>
+      <div style="display:flex;gap:6px;margin-top:4px">
+        <input id="event-name-input" type="text" placeholder="Ej: Valentina XV"
+          style="flex:1;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#fff;font-family:'Outfit',sans-serif;font-size:12px;outline:none;min-width:0">
+        <button onclick="saveEventName()"
+          style="padding:7px 12px;border-radius:8px;border:none;background:rgba(0,245,255,0.15);color:#00f5ff;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap">
+          Guardar
+        </button>
+      </div>
+    </div>
     <div class="logo-section">
       <div class="logo-title">🖼 Logo del evento</div>
       <div class="logo-row">
@@ -195,7 +206,14 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const reqRef = ref(db,'requests');
 const logoRef = ref(db,'config/logoUrl');
+const eventRef = ref(db,'config/eventName');
 let all={}, currentFilter='all';
+
+onValue(eventRef, snap=>{
+  const val=snap.val();
+  const inp=document.getElementById('event-name-input');
+  if(val&&inp) inp.value=val;
+});
 
 onValue(query(reqRef,orderByChild('ts')), snap=>{
   all={};
@@ -282,6 +300,11 @@ window.uploadLogo=function(input){
   reader.readAsDataURL(file);input.value='';
 };
 window.removeLogo=()=>set(logoRef,null);
+window.saveEventName=()=>{
+  const val=document.getElementById('event-name-input').value.trim();
+  if(!val){alert('Ingresá un nombre para el evento');return;}
+  set(eventRef,val);
+};
 </script>
 </body>
 </html>

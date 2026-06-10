@@ -134,7 +134,7 @@ body{padding-bottom:40px}
 <!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getDatabase, ref, push, serverTimestamp, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 // ══════════════════════════════════════════
 //  REEMPLAZÁ ESTOS VALORES con los de tu
@@ -159,6 +159,11 @@ window._ts = serverTimestamp;
 
 document.getElementById('dot').classList.add('ok');
 document.getElementById('status-txt').textContent = 'Conectado ✓';
+
+onValue(ref(db,'config/eventName'), snap=>{
+  const val=snap.val();
+  if(val) document.querySelector('.dj-name').textContent=val;
+});
 
 const GENRES = [
   {e:'🔥',l:'Reggaetón',c:'#ff2d9b'},
