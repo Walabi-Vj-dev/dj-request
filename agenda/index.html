@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#05080d">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -127,7 +127,7 @@ header.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;justify-
 .modal{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);width:min(460px,100%);max-height:calc(100% - 32px);overflow:auto;padding:18px;display:flex;flex-direction:column;gap:12px}
 .modal h3{margin:0;font-family:var(--display);font-size:20px}
 .field{display:flex;flex-direction:column;gap:4px}
-.field input[type=text],.field input[type=date],.field input[type=number]{background:var(--bg);border:1px solid var(--line);border-radius:var(--chip-radius);padding:9px 10px;width:100%}
+.field input[type=text],.field input[type=date],.field input[type=number]{font-size:16px;background:var(--bg);border:1px solid var(--line);border-radius:var(--chip-radius);padding:9px 10px;width:100%}
 .row2{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end}
 .swatches{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .sw{width:30px;height:30px;border-radius:50%;border:2px solid transparent;background:var(--c);padding:0}
@@ -334,7 +334,7 @@ header.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;justify-
     $("#delBtn").hidden=!e; $("#confirmDel").hidden=true;
     $("#scrim").hidden=false; setTimeout(()=>$("#f-name").focus(),30);
   }
-  function closeForm(){$("#scrim").hidden=true;editing=null}
+  function closeForm(){if(document.activeElement)document.activeElement.blur();$("#scrim").hidden=true;editing=null}
 
   async function save(data){
     if(col){
