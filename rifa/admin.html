@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#1c2840">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Figtree:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="rifa.css">
+<link rel="stylesheet" href="rifa.css?v=3">
 <style>
 .adminbar{background:var(--ink);color:var(--bg);border-radius:14px;padding:12px 14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .adminbar .t{font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin-right:auto;min-width:0;overflow-wrap:anywhere}
@@ -19,11 +19,11 @@
 .stat span{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
 .stat b{font-family:var(--mono);font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
 .stat.r b{color:color-mix(in srgb,var(--res) 70%,var(--ink))}
-.views{display:flex;gap:4px;background:var(--paper);border-radius:12px;padding:4px}
-.views button{flex:1;border:0;background:transparent;padding:9px 6px;border-radius:9px;font-weight:700;font-size:14px}
+.views{display:flex;gap:4px;background:var(--paper);border-radius:12px;padding:4px;overflow-x:auto;scrollbar-width:none}
+.views button{flex:1 0 auto;border:0;background:transparent;padding:9px 10px;border-radius:9px;font-weight:700;font-size:14px}
 .views button.on{background:var(--ink);color:var(--bg)}
 .buyer{background:var(--paper);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;border-left:4px solid var(--res)}
-.buyer.paid{border-left-color:var(--line)}
+.buyer.paid{border-left-color:var(--sold)}
 .buyer.fresh{box-shadow:0 0 0 2px var(--accent)}
 .badge{background:var(--accent);color:var(--accent-ink);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:6px;margin-left:8px;vertical-align:2px}
 .newres{background:var(--accent);color:var(--accent-ink);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;animation:pop .5s}
@@ -43,6 +43,22 @@
 .login .box{max-width:400px;text-align:center;align-items:center}
 .info{background:var(--paper);border-radius:12px;padding:12px 14px;font-size:14px}
 .list{display:flex;flex-direction:column;gap:8px}
+details.texts{border-top:1px solid var(--line);padding-top:12px}
+details.texts summary{cursor:pointer;font-weight:700;font-size:15px;padding:4px 0}
+details.texts .fields{margin-top:12px}
+.pedit{background:var(--bg);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.pedit .top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pedit .pos{font-family:var(--display);font-size:24px;color:var(--accent);margin-right:auto;line-height:1}
+.logofield{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;font-weight:600}
+.logofield .ph{width:64px;height:64px;border-radius:10px;border:1.5px dashed var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px;font-weight:400;text-align:center}
+.filebtn{position:relative;overflow:hidden}
+.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.dirty{font-size:13px;font-weight:700;color:var(--bad)}
+.drow{background:var(--bg);border-radius:12px;padding:12px 14px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;align-items:center}
+.drow .pos{font-family:var(--display);font-size:24px;color:var(--accent);grid-row:span 2;line-height:1}
+.drow .row{grid-column:2}
+.drow input{flex:1 1 120px;width:auto}
+.drow .w{font-size:14px}
 </style>
 </head>
 <body>
@@ -72,6 +88,7 @@
     <div class="views" role="tablist">
       <button data-v="res" class="on">Reservas</button>
       <button data-v="nums">Números</button>
+      <button data-v="prizes">Premios</button>
       <button data-v="cfg">Configurar</button>
       <button data-v="draw">Sorteo</button>
     </div>
@@ -90,7 +107,7 @@
     <section id="v-nums" hidden style="display:flex;flex-direction:column;gap:10px">
       <div class="sechead">
         <p class="note">Tocá números para venderlos a mano, marcarlos pagados o liberarlos.</p>
-        <div class="legend"><span><i class="lg-free"></i>Libre</span><span><i class="lg-r"></i>Reservado</span><span><i class="lg-p"></i>Pagado (vendido)</span><span><i class="lg-s"></i>Elegido</span></div>
+        <div class="legend"><span><i class="lg-free"></i>Libre</span><span><i class="lg-s"></i>Elegido</span><span><i class="lg-r"></i>Reservado</span><span><i class="lg-p"></i>Vendido (pagado)</span></div>
       </div>
       <div class="tools"><input type="search" id="find" inputmode="numeric" placeholder="Ir al número" autocomplete="off"></div>
       <div class="tabs" id="tabs"></div>
@@ -111,11 +128,20 @@
       </div>
     </section>
 
+    <section id="v-prizes" hidden class="box">
+      <div class="sechead"><h2>Premios</h2><span class="dirty" id="pdirty" hidden>Sin guardar</span></div>
+      <p class="note">Cargá cada premio en orden: el primero es el 1° premio. El logo se achica solo; conviene una imagen cuadrada o con fondo blanco.</p>
+      <div class="list" id="plist"></div>
+      <div class="row">
+        <button class="btn ghost" id="padd">+ Agregar premio</button>
+        <button class="btn accent" id="psave" style="margin-left:auto">Guardar premios</button>
+      </div>
+    </section>
+
     <section id="v-cfg" hidden class="box">
       <h2>Configurar la rifa</h2>
       <div class="fields">
         <label class="wide">Título<input type="text" id="c-title" maxlength="80"></label>
-        <label class="wide">Premio<input type="text" id="c-prize" maxlength="120"><small>Lo que gana quien saque el número</small></label>
         <label>Valor por número ($)<input type="number" id="c-price" min="0" step="100"></label>
         <label>Cantidad de números<input type="number" id="c-count" min="10" max="10000" step="1"><small>1000 = del 000 al 999</small></label>
         <label>Meta a juntar ($)<input type="number" id="c-goal" min="0" step="1000"><small>Solo la ves vos</small></label>
@@ -126,19 +152,18 @@
         <label>Cómo se sortea<input type="text" id="c-method" maxlength="120" placeholder="Quiniela Nacional nocturna, últimas 3 cifras"></label>
         <label class="check wide"><input type="checkbox" id="c-open"> Reservas abiertas (destildá para cerrar la venta)</label>
       </div>
+      <details class="texts" open>
+        <summary>Textos de la página</summary>
+        <p class="note">Todo lo que se lee en la página pública. Si dejás un campo vacío, ese texto no se muestra.</p>
+        <div class="fields" id="textfields"></div>
+      </details>
       <div class="row"><button class="btn accent" id="savecfg">Guardar configuración</button></div>
     </section>
 
     <section id="v-draw" hidden class="box">
       <h2>Sorteo</h2>
       <p class="note" id="drawnote"></p>
-      <div class="row"><button class="btn" id="drawbtn">Sortear al azar entre los pagados</button></div>
-      <div class="row">
-        <input type="number" id="wnum" min="0" placeholder="Número que salió en la quiniela" style="flex:1 1 200px;width:auto">
-        <button class="btn" id="setwin">Cargar ganador</button>
-        <button class="btn danger" id="clearwin" hidden>Quitar ganador</button>
-      </div>
-      <div class="info" id="wininfo" hidden></div>
+      <div class="list" id="drawlist"></div>
     </section>
   </div>
 </div>
@@ -146,6 +171,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, onValue, update, set, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { TXT, txt, prizeList, winMap, prizeLabel } from "./shared.js?v=3";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const app = initializeApp({
@@ -161,7 +187,7 @@ const db = getDatabase(app), auth = getAuth(app);
 
 const DEF = { title:"Rifa de la Moto", prize:"", price:2000, count:1000, goal:0, alias:"", holder:"", wa:"", date:"", method:"", open:true };
 const PAGE = 100;
-let C = { ...DEF }, hasCfg = false, N = {}, B = {}, W = null, sel = new Set(), page = 0, filter = "r", st = "r", subs = [], toastT;
+let C = { ...DEF }, hasCfg = false, N = {}, B = {}, W = {}, P = [], pDirty = false, sel = new Set(), page = 0, filter = "r", st = "r", subs = [], toastT;
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
@@ -222,7 +248,7 @@ onAuthStateChanged(auth, u => {
     $("lerr").textContent = `La cuenta ${u.email} no es la del administrador.`; $("lerr").hidden = false;
     $("login").hidden = false; $("app").hidden = true; signOut(auth);
   }));
-  subs.push(onValue(ref(db,"config"), s => { hasCfg = s.exists(); C = { ...DEF, ...(s.val()||{}) }; fillCfg(); renderAll() }));
+  subs.push(onValue(ref(db,"config"), s => { hasCfg = s.exists(); C = { ...DEF, ...(s.val()||{}) }; fillCfg(); if (!pDirty){ P = prizeList(C).map(p => ({ ...p })); renderPrizeEditor() } renderAll() }));
   subs.push(onValue(ref(db,"nums"), s => {
     N = s.val() || {};
     const keys = Object.keys(N);
@@ -230,7 +256,7 @@ onAuthStateChanged(auth, u => {
     seen = new Set(keys);
     renderAll();
   }));
-  subs.push(onValue(ref(db,"winner"), s => { W = s.val(); renderDraw(); renderGrid() }));
+  subs.push(onValue(ref(db,"winner"), s => { W = winMap(s.val()); renderDraw(); renderGrid() }));
 });
 
 // ---------- render ----------
@@ -302,7 +328,7 @@ function renderGrid(){
     const e = N[i]; let cls = "num", title = fmt(i);
     if (e){ cls += " " + (e.s==="p"?"p":"r"); title += " · " + (B[i]?.name || "") }
     if (sel.has(i)) cls += " sel";
-    if (W != null && +W === i) cls += " win";
+    if (Object.values(W).some(v => v !== "" && v != null && +v === i)) cls += " win";
     h += `<button class="${cls}" data-n="${i}" title="${esc(title)}">${fmt(i)}</button>`;
   }
   $("grid").innerHTML = h;
@@ -319,22 +345,87 @@ function renderDock(){
     info.innerHTML = taken.slice(0,6).map(n => `<div><b class="big">${fmt(n)}</b> · ${esc(B[n]?.name||"Sin nombre")} ${B[n]?.tel?`· ${esc(B[n].tel)}`:""} · ${N[n].s==="p"?"Pagado":"Reservado"}</div>`).join("") + (taken.length>6?`<div class="note">y ${taken.length-6} más</div>`:"");
   } else info.hidden = true;
 }
+function drawTargets(){ const l = prizeList(C); return l.length ? l.map((p,i) => ({ id:p.id, pos:i+1, label:prizeLabel(p,i), title:p.title||"" })) : [{ id:"main", pos:1, label:"Premio", title:"" }] }
 function renderDraw(){
   const s = stats();
-  $("drawnote").textContent = `Participan los ${s.p} números pagados. Los ${s.r} reservados sin pagar no entran en el sorteo al azar.`;
-  $("drawbtn").disabled = !s.p;
-  $("wnum").max = C.count - 1;
-  $("clearwin").hidden = W == null;
-  const wi = $("wininfo");
-  if (W == null){ wi.hidden = true; return }
-  const b = B[W], e = N[W];
-  wi.hidden = false;
-  wi.innerHTML = `Ganador: <b class="big">${fmt(W)}</b> · ${e ? `${esc(b?.name||"Sin nombre")} ${b?.tel?`· ${esc(b.tel)}`:""} · ${e.s==="p"?"pagado":"<b>reservado sin pagar</b>"}` : "<b>número no vendido</b>"}`;
+  $("drawnote").textContent = `Para cada premio podés cargar el número que salió en la quiniela o sortear al azar entre los ${s.p} números pagados (los reservados sin pagar no entran y un número no gana dos veces).`;
+  $("drawlist").innerHTML = drawTargets().map(t => {
+    const w = W[t.id], has = w != null && w !== "";
+    const info = has ? (N[w] ? `<b class="big">${fmt(+w)}</b> · ${esc(B[w]?.name||"Sin nombre")}${B[w]?.tel?` · ${esc(B[w].tel)}`:""} · ${N[w].s==="p"?"pagado":"<b>reservado sin pagar</b>"}` : `<b class="big">${fmt(+w)}</b> · <b>número no vendido</b>`) : `<span class="note">Sin sortear</span>`;
+    return `<div class="drow"><span class="pos">${t.pos}°</span>
+      <div class="w"><b>${esc(t.label)}</b>${t.title?` · ${esc(t.title)}`:""}<br>${info}</div>
+      <div class="row">
+        <input type="number" min="0" max="${C.count-1}" placeholder="Número ganador" data-wi="${t.id}" aria-label="Número ganador del ${esc(t.label)}">
+        <button class="btn small" data-setw="${t.id}">Cargar</button>
+        <button class="btn small ghost" data-randw="${t.id}" ${s.p?"":"disabled"}>Al azar</button>
+        ${has?`<button class="btn small danger" data-clrw="${t.id}">Quitar</button>`:""}
+      </div></div>`;
+  }).join("");
 }
 function fillCfg(){
-  for (const k of ["title","prize","price","count","goal","date","wa","alias","holder","method"]){ const el = $("c-"+k); if (document.activeElement !== el) el.value = C[k] ?? "" }
+  for (const k of ["title","price","count","goal","date","wa","alias","holder","method"]){ const el = $("c-"+k); if (document.activeElement !== el) el.value = C[k] ?? "" }
   $("c-open").checked = C.open !== false;
+  if (!$("textfields").children.length) $("textfields").innerHTML = TXT.map(([k,l]) => `<label class="${/^step|subtitle|footer/.test(k)?"wide":""}">${esc(l)}<input type="text" id="t-${k}" maxlength="200"></label>`).join("");
+  for (const [k] of TXT){ const el = $("t-"+k); if (document.activeElement !== el) el.value = txt(C, k) }
 }
+
+// ---------- premios ----------
+function renderPrizeEditor(){
+  $("pdirty").hidden = !pDirty;
+  $("plist").innerHTML = P.length ? P.map((p,i) => `
+    <div class="pedit" data-i="${i}">
+      <div class="top"><span class="pos">${i+1}°</span>
+        <button class="btn small ghost" data-pm="up" ${i?"":"disabled"} aria-label="Subir">↑</button>
+        <button class="btn small ghost" data-pm="down" ${i<P.length-1?"":"disabled"} aria-label="Bajar">↓</button>
+        <button class="btn small danger" data-pm="del">Borrar</button></div>
+      <div class="fields">
+        <label>Nombre del premio<input type="text" data-pf="label" maxlength="40" value="${esc(p.label||"")}" placeholder="${i+1}° premio"></label>
+        <label>Qué se gana<input type="text" data-pf="title" maxlength="100" value="${esc(p.title||"")}" placeholder="Ej: Moto Honda Wave 110"></label>
+        <label>Empresa que colabora<input type="text" data-pf="sponsor" maxlength="60" value="${esc(p.sponsor||"")}" placeholder="Ej: Casa Pérez"></label>
+        <div class="logofield">${p.logo?`<img class="plogo" src="${esc(p.logo)}" alt="Logo">`:`<span class="ph">Sin logo</span>`}
+          <span class="btn small ghost filebtn">${p.logo?"Cambiar logo":"Subir logo"}<input type="file" accept="image/*" data-pf="logo" aria-label="Subir logo"></span>
+          ${p.logo?`<button class="btn small ghost" data-pm="nologo">Quitar logo</button>`:""}</div>
+      </div>
+    </div>`).join("") : `<p class="note">Todavía no cargaste premios. Tocá "Agregar premio".</p>`;
+}
+function pTouch(){ pDirty = true; $("pdirty").hidden = false }
+function shrinkLogo(file){
+  return new Promise((res, rej) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const M = 240, k = Math.min(1, M / Math.max(img.width, img.height));
+      const c = document.createElement("canvas"); c.width = Math.max(1, Math.round(img.width*k)); c.height = Math.max(1, Math.round(img.height*k));
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+      let d = c.toDataURL("image/webp", .85); if (!d.startsWith("data:image/webp")) d = c.toDataURL("image/png");
+      res(d);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error("img")) };
+    img.src = url;
+  });
+}
+$("plist").addEventListener("input", e => { const f = e.target.closest("[data-pf]"); if (!f || f.type === "file") return; P[+f.closest("[data-i]").dataset.i][f.dataset.pf] = f.value; pTouch() });
+$("plist").addEventListener("change", async e => {
+  const f = e.target.closest('[data-pf="logo"]'); if (!f || !f.files[0]) return;
+  try { P[+f.closest("[data-i]").dataset.i].logo = await shrinkLogo(f.files[0]); pTouch(); renderPrizeEditor() } catch { toast("No se pudo leer esa imagen. Probá con un PNG o JPG.") }
+});
+$("plist").addEventListener("click", e => {
+  const b = e.target.closest("[data-pm]"); if (!b) return;
+  const i = +b.closest("[data-i]").dataset.i, m = b.dataset.pm;
+  if (m === "del"){ arm(b, "¿Borrar? Tocá de nuevo", () => { P.splice(i,1); pTouch(); renderPrizeEditor() }); return }
+  if (m === "up" && i > 0) [P[i-1], P[i]] = [P[i], P[i-1]];
+  if (m === "down" && i < P.length-1) [P[i+1], P[i]] = [P[i], P[i+1]];
+  if (m === "nologo") P[i].logo = "";
+  pTouch(); renderPrizeEditor();
+});
+$("padd").onclick = () => { P.push({ id:"p"+Date.now().toString(36)+Math.random().toString(36).slice(2,6), label:"", title:"", sponsor:"", logo:"" }); pTouch(); renderPrizeEditor(); const l = $("plist").lastElementChild; l?.scrollIntoView({behavior:"smooth",block:"center"}); l?.querySelector('[data-pf="title"]')?.focus() };
+$("psave").onclick = async () => {
+  const obj = {}; P.forEach((p,i) => obj[p.id] = { o:i, label:(p.label||"").trim(), title:(p.title||"").trim(), sponsor:(p.sponsor||"").trim(), logo:p.logo||"" });
+  const u = { "config/prizes": P.length ? obj : null };
+  Object.keys(W).forEach(k => { if (k !== "main" && !obj[k]) u["winner/"+k] = null });
+  try { await update(ref(db), u); pDirty = false; renderPrizeEditor(); renderDraw(); toast("Premios guardados. Ya los ven todos.") }
+  catch (e) { toast("No se pudo guardar: " + (e.code||e.message)) }
+};
+window.addEventListener("beforeunload", e => { if (pDirty){ e.preventDefault(); e.returnValue = "" } });
 
 // ---------- actions ----------
 async function write(upd, ok){ try { await update(ref(db), upd); if (ok) toast(ok) } catch (e) { console.error(e); toast("No se pudo guardar: " + (e.code||e.message)) } }
@@ -344,7 +435,10 @@ function free(list){ const u = {}; list.forEach(n => { u[`nums/${n}`] = null; u[
 document.addEventListener("click", e => {
   if (e.target.closest("#seenres")){ clearFresh(); document.querySelector('[data-v="res"]').click(); filter = "r"; document.querySelectorAll("[data-f]").forEach(b => b.classList.toggle("on", b.dataset.f === "r")); renderBuyers(); $("buyers").scrollIntoView({behavior:"smooth"}); return }
   const v = e.target.closest("[data-v]");
-  if (v){ document.querySelectorAll("[data-v]").forEach(b => b.classList.toggle("on", b===v)); ["res","nums","cfg","draw"].forEach(x => $("v-"+x).hidden = x !== v.dataset.v); return }
+  if (v){ document.querySelectorAll("[data-v]").forEach(b => b.classList.toggle("on", b===v)); ["res","nums","prizes","cfg","draw"].forEach(x => $("v-"+x).hidden = x !== v.dataset.v); return }
+  const sw = e.target.closest("[data-setw]"); if (sw){ const id = sw.dataset.setw, w = parseInt(document.querySelector(`[data-wi="${id}"]`).value,10); if (isNaN(w) || w < 0 || w >= C.count){ toast(`Poné un número del ${fmt(0)} al ${fmt(C.count-1)}`); return } set(ref(db,"winner/"+id), w).then(()=>toast("Ganador cargado")).catch(()=>toast("No se pudo guardar")); return }
+  const rw = e.target.closest("[data-randw]"); if (rw){ drawRandom(rw, rw.dataset.randw); return }
+  const cw = e.target.closest("[data-clrw]"); if (cw){ arm(cw, "¿Quitar?", () => set(ref(db,"winner/"+cw.dataset.clrw), null)); return }
   const f = e.target.closest("[data-f]");
   if (f){ filter = f.dataset.f; document.querySelectorAll("[data-f]").forEach(b => b.classList.toggle("on", b===f)); renderBuyers(); return }
   const pd = e.target.closest("[data-paid]"); if (pd){ markPaid(pd.dataset.paid.split(",").map(Number)); return }
@@ -378,9 +472,10 @@ $("find").addEventListener("input", e => {
 });
 $("savecfg").onclick = async () => {
   const g = k => $("c-"+k).value;
-  const cfg = { title: g("title").trim() || "Rifa", prize: g("prize").trim(), price: Math.max(0, +g("price")||0), count: Math.min(10000, Math.max(10, parseInt(g("count"))||1000)),
+  const cfg = { title: g("title").trim() || "Rifa", price: Math.max(0, +g("price")||0), count: Math.min(10000, Math.max(10, parseInt(g("count"))||1000)),
     goal: Math.max(0, +g("goal")||0), date: g("date"), wa: g("wa").replace(/\D/g,""), alias: g("alias").trim(), holder: g("holder").trim(), method: g("method").trim(), open: $("c-open").checked };
-  try { await set(ref(db,"config"), cfg); toast("Configuración guardada. Ya la ven todos.") } catch (e) { toast("No se pudo guardar: " + (e.code||e.message)) }
+  for (const [k] of TXT) cfg[k] = $("t-"+k).value.trim();
+  try { await update(ref(db,"config"), cfg); toast("Configuración guardada. Ya la ven todos.") } catch (e) { toast("No se pudo guardar: " + (e.code||e.message)) }
 };
 $("copylink").onclick = () => copy(new URL("./", location.href).href, "Link copiado. Pegalo en WhatsApp o Instagram.");
 $("copylist").onclick = () => {
@@ -388,26 +483,26 @@ $("copylist").onclick = () => {
   groups().slice().sort((a,b)=>a.nums[0]-b.nums[0]).forEach(e => lines.push(`${e.nums.map(fmt).join(", ")} - ${e.name}${e.r.length?` (debe ${money(e.r.length*C.price)})`:" (pagado)"}`));
   copy(lines.join("\n"), "Lista copiada");
 };
-$("drawbtn").onclick = () => {
-  const paid = Object.keys(N).map(Number).filter(n => n < C.count && N[n].s === "p");
-  if (!paid.length) return;
-  arm($("drawbtn"), "Confirmar: sortear ahora", () => {
+function drawRandom(btn, id){
+  const used = new Set(Object.entries(W).filter(([k]) => k !== id).map(([,v]) => +v));
+  const paid = Object.keys(N).map(Number).filter(n => n < C.count && N[n].s === "p" && !used.has(n));
+  if (!paid.length){ toast("No quedan números pagados para sortear"); return }
+  const t = drawTargets().find(x => x.id === id) || { label:"Premio" };
+  arm(btn, "¿Sortear?", () => {
     const r = new Uint32Array(1); crypto.getRandomValues(r); const win = paid[r[0] % paid.length];
     const o = document.createElement("div"); o.className = "overlay";
-    o.innerHTML = `<div class="card" style="text-align:center"><span class="eyebrow">Sorteando entre ${paid.length} números</span><div class="huge">--</div><p class="note" id="wn">&nbsp;</p></div>`;
+    o.innerHTML = `<div class="card" style="text-align:center"><span class="eyebrow">${esc(t.label)} · entre ${paid.length} números</span><div class="huge">--</div><p class="note" id="wn">&nbsp;</p></div>`;
     document.body.appendChild(o);
     const el = o.querySelector(".huge"), t0 = Date.now(), dur = matchMedia("(prefers-reduced-motion: reduce)").matches ? 300 : 3000;
     (function tick(){
       const k = (Date.now()-t0)/dur;
       if (k < 1){ el.textContent = fmt(paid[Math.floor(Math.random()*paid.length)]); setTimeout(tick, 60 + k*200); return }
       el.textContent = fmt(win); o.querySelector("#wn").textContent = B[win]?.name ? `Ganó ${B[win].name}` : "Número ganador";
-      set(ref(db,"winner"), win).catch(e => toast("No se pudo guardar el ganador"));
+      set(ref(db,"winner/"+id), win).catch(() => toast("No se pudo guardar el ganador"));
       setTimeout(() => o.remove(), 4000);
     })();
   });
-};
-$("setwin").onclick = () => { const w = parseInt($("wnum").value,10); if (isNaN(w) || w < 0 || w >= C.count){ toast(`Poné un número del ${fmt(0)} al ${fmt(C.count-1)}`); return } set(ref(db,"winner"), w).then(()=>toast("Ganador cargado")).catch(()=>toast("No se pudo guardar")) };
-$("clearwin").onclick = () => arm($("clearwin"), "¿Quitar? Tocá de nuevo", () => set(ref(db,"winner"), null));
+}
 </script>
 </body>
 </html>

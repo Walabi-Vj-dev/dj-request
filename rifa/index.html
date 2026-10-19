@@ -10,19 +10,21 @@
 <meta name="theme-color" content="#1c2840">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Figtree:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="rifa.css">
+<link rel="stylesheet" href="rifa.css?v=3">
 </head>
 <body>
 <div class="wrap">
   <section class="ticket">
     <div class="main">
-      <span class="eyebrow" id="eyebrow">Bono contribución</span>
+      <span class="eyebrow" id="eyebrow"></span>
       <h1 id="title">Rifa de la Moto</h1>
-      <p class="prize" id="prize"></p>
+      <p class="prize" id="subtitle"></p>
       <div class="meta" id="meta"></div>
     </div>
-    <div class="stub"><span class="lbl">Valor</span><span class="price" id="price">—</span><span class="per">por número</span></div>
+    <div class="stub"><span class="lbl" id="pricelbl">Valor</span><span class="price" id="price">—</span><span class="per" id="perlbl">por número</span></div>
   </section>
+
+  <section class="prizes" id="prizes" hidden></section>
 
   <section class="winner" id="winner" hidden></section>
 
@@ -32,8 +34,8 @@
 
   <section style="display:flex;flex-direction:column;gap:10px">
     <div class="sechead">
-      <h2>Elegí tus números</h2>
-      <div class="legend"><span><i class="lg-free"></i>Libre</span><span><i class="lg-r"></i>Reservado</span><span><i class="lg-taken"></i>Vendido</span><span><i class="lg-mine"></i>Tuyo</span><span><i class="lg-s"></i>Elegido</span></div>
+      <h2 id="gridtitle">Elegí tus números</h2>
+      <div class="legend"><span><i class="lg-free"></i>Libre</span><span><i class="lg-s"></i>Elegido</span><span><i class="lg-r"></i>Reservado</span><span><i class="lg-taken"></i>Vendido</span><span><i class="lg-mine"></i>Tuyo</span></div>
     </div>
     <div class="tools">
       <input type="search" id="find" inputmode="numeric" placeholder="Buscar un número" autocomplete="off">
@@ -43,11 +45,7 @@
     <div class="grid" id="grid"><p class="loading">Cargando números…</p></div>
   </section>
 
-  <ol class="how">
-    <li><span><b>Elegí</b> uno o varios números libres.</span></li>
-    <li><span><b>Reservalos</b> con tu nombre y celular. Quedan en amarillo y nadie más los puede tomar.</span></li>
-    <li><span><b>Transferí</b> y mandá el comprobante por WhatsApp. Al confirmarse el pago pasa a gris, vendido.</span></li>
-  </ol>
+  <ol class="how" id="how"></ol>
 
   <section class="box" id="pay" hidden></section>
 
@@ -66,13 +64,14 @@
     </div>
   </div>
 
-  <footer>Los números reservados se confirman cuando el organizador recibe el pago.</footer>
+  <footer id="footer"></footer>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, onValue, update, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { txt, prizeList, winMap, prizeLabel } from "./shared.js?v=3";
 
 const app = initializeApp({
   apiKey: "AIzaSyCr0VMi3eP5wlk0xVqKjUjSQQk9PdaXhBg",
@@ -87,7 +86,7 @@ const db = getDatabase(app), auth = getAuth(app);
 
 const DEF = { title:"Rifa de la Moto", prize:"", price:2000, count:1000, goal:0, alias:"", holder:"", wa:"", date:"", method:"", open:true };
 const MAX_PICK = 30, PAGE = 100;
-let C = { ...DEF }, N = null, W = null, uid = null, sel = new Set(), page = 0, busy = false, toastT;
+let C = { ...DEF }, N = null, W = {}, uid = null, sel = new Set(), page = 0, busy = false, toastT;
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
@@ -113,17 +112,45 @@ onValue(ref(db,"nums"), s => {
   if (lost.length) toast(`Alguien acaba de reservar ${lost.join(", ")}`);
   renderProgress(); renderGrid(); renderTabs(); renderDock(); renderMine();
 }, () => { $("grid").innerHTML = '<p class="err">No se pudo conectar. Revisá tu internet y recargá.</p>' });
-onValue(ref(db,"winner"), s => { W = s.val(); renderWinner(); renderGrid() });
+onValue(ref(db,"winner"), s => { W = winMap(s.val()); renderPrizes(); renderWinner(); renderGrid() });
 
-function renderAll(){ renderHeader(); renderProgress(); renderWinner(); renderTabs(); renderGrid(); renderDock(); renderPay(); renderMine() }
+function renderAll(){ renderHeader(); renderPrizes(); renderProgress(); renderWinner(); renderTabs(); renderGrid(); renderDock(); renderPay(); renderMine() }
 
 function renderHeader(){
   document.title = C.title;
-  $("eyebrow").textContent = `Bono contribución · ${C.count} números`;
+  const T = k => txt(C, k);
+  const setT = (id, v) => { const el = $(id); el.textContent = v; el.hidden = !v };
+  setT("eyebrow", T("eyebrow"));
   $("title").textContent = C.title;
-  $("prize").innerHTML = C.prize ? `Premio: <b>${esc(C.prize)}</b>` : "";
-  $("meta").innerHTML = `<span>Sorteo <b>${esc(fdate(C.date))}</b></span>${C.method ? `<span>${esc(C.method)}</span>` : ""}`;
+  setT("subtitle", T("subtitle"));
+  const dl = T("dateLabel");
+  $("meta").innerHTML = `<span>${dl ? esc(dl) + " " : ""}<b>${esc(fdate(C.date))}</b></span>${C.method ? `<span>${esc(C.method)}</span>` : ""}`;
+  $("pricelbl").textContent = T("priceLabel");
   $("price").textContent = money(C.price);
+  $("perlbl").textContent = T("perLabel");
+  setT("gridtitle", T("gridTitle"));
+  const steps = ["step1","step2","step3"].map(T).filter(Boolean);
+  $("how").innerHTML = steps.map(t => `<li><span>${esc(t)}</span></li>`).join("");
+  $("how").hidden = !steps.length;
+  setT("footer", T("footer"));
+}
+function renderPrizes(){
+  const box = $("prizes"), list = prizeList(C);
+  if (!list.length){ box.hidden = true; return }
+  box.hidden = false;
+  const sp = txt(C, "sponsorLabel"), title = txt(C, "prizesTitle");
+  box.innerHTML = (title ? `<h2>${esc(title)}</h2>` : "") + `<div class="plist">${list.map((p, i) => {
+    const w = W ? W[p.id] : null, won = w != null && w !== "";
+    return `<article class="pcard ${won ? "won" : ""}">
+      <span class="pos">${i + 1}°</span>
+      <div class="pbody">
+        <span class="plabel">${esc(prizeLabel(p, i))}</span>
+        <span class="ptitle">${esc(p.title || "A confirmar")}</span>
+        ${p.sponsor ? `<span class="psponsor">${sp ? esc(sp) + ": " : ""}${esc(p.sponsor)}</span>` : ""}
+        ${won ? `<span class="pwin">Ganador: <b>${fmt(+w)}</b></span>` : ""}
+      </div>
+      ${p.logo ? `<img class="plogo" src="${esc(p.logo)}" alt="${esc(p.sponsor ? "Logo de " + p.sponsor : "Logo")}" loading="lazy">` : "<span></span>"}
+    </article>`}).join("")}</div>`;
 }
 function stats(){ let r=0,p=0; if(N) for (const k in N){ if(+k>=C.count) continue; N[k].s==="p"?p++:r++ } return { r, p, sold:r+p, free:C.count-r-p } }
 function renderProgress(){
@@ -133,10 +160,11 @@ function renderProgress(){
     <div class="bar" role="progressbar" aria-label="Números vendidos" aria-valuenow="${Math.round(pct)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div>`;
 }
 function renderWinner(){
-  const w = $("winner");
-  if (W == null || W === "") { w.hidden = true; return }
+  const w = $("winner"), ids = new Set(prizeList(C).map(p => p.id));
+  const loose = Object.entries(W || {}).filter(([k, v]) => !ids.has(k) && v != null && v !== "");
+  if (!loose.length) { w.hidden = true; return }
   w.hidden = false;
-  w.innerHTML = `<span class="n">${fmt(W)}</span><div><h2>¡Número ganador!</h2><p>Gracias a todos por ayudar.</p></div>`;
+  w.innerHTML = `<span class="n">${loose.map(([, v]) => fmt(+v)).join(" · ")}</span><div><h2>¡Número ganador!</h2><p>Gracias a todos por ayudar.</p></div>`;
 }
 function pages(){ return Math.ceil(C.count / PAGE) }
 function renderTabs(){
@@ -160,7 +188,7 @@ function renderGrid(){
     const e = N[i]; let cls = "num", dis = "", lbl = `Número ${fmt(i)}`;
     if (e){ if (e.s === "p") { cls += " taken"; lbl += ", vendido" } else { cls += " held"; lbl += ", reservado" } if (uid && e.u === uid) { cls += " mine"; lbl += " (tuyo)" } dis = " disabled" }
     else if (sel.has(i)) cls += " sel";
-    if (W != null && +W === i) cls += " win";
+    if (W && Object.values(W).some(v => v !== "" && v != null && +v === i)) cls += " win";
     h += `<button class="${cls}" data-n="${i}" aria-label="${lbl}" aria-pressed="${sel.has(i)}"${dis}>${fmt(i)}</button>`;
   }
   $("grid").innerHTML = h;
@@ -178,7 +206,8 @@ function renderPay(){
   const p = $("pay");
   if (!C.alias && !C.wa) { p.hidden = true; return }
   p.hidden = false;
-  p.innerHTML = `<h2>Para pagar</h2>
+  const pt = txt(C, "payTitle");
+  p.innerHTML = `${pt ? `<h2>${esc(pt)}</h2>` : ""}
     ${C.alias ? `<div class="row"><span>Alias: <code class="copyable">${esc(C.alias)}</code></span><button class="btn small ghost" data-copy="alias">Copiar alias</button></div>` : ""}
     ${C.holder ? `<p class="note">Titular: ${esc(C.holder)}</p>` : ""}
     ${C.wa ? `<p class="note">Comprobantes por WhatsApp al <b style="user-select:all">+${esc(C.wa)}</b></p>` : ""}`;
