@@ -105,15 +105,15 @@ try { const d = JSON.parse(localStorage.getItem("rifa-me")||"{}"); if (d.name) $
 signInAnonymously(auth).catch(() => {});
 onAuthStateChanged(auth, u => { uid = u ? u.uid : null; renderGrid(); renderMine() });
 
-onValue(ref(db,"rifa/config"), s => { C = { ...DEF, ...(s.val()||{}) }; renderAll() });
-onValue(ref(db,"rifa/nums"), s => {
+onValue(ref(db,"config"), s => { C = { ...DEF, ...(s.val()||{}) }; renderAll() });
+onValue(ref(db,"nums"), s => {
   N = s.val() || {};
   let lost = [];
   sel.forEach(n => { if (N[n]) { sel.delete(n); lost.push(fmt(n)) } });
   if (lost.length) toast(`Alguien acaba de reservar ${lost.join(", ")}`);
   renderProgress(); renderGrid(); renderTabs(); renderDock(); renderMine();
 }, () => { $("grid").innerHTML = '<p class="err">No se pudo conectar. Revisá tu internet y recargá.</p>' });
-onValue(ref(db,"rifa/winner"), s => { W = s.val(); renderWinner(); renderGrid() });
+onValue(ref(db,"winner"), s => { W = s.val(); renderWinner(); renderGrid() });
 
 function renderAll(){ renderHeader(); renderProgress(); renderWinner(); renderTabs(); renderGrid(); renderDock(); renderPay(); renderMine() }
 
@@ -252,8 +252,8 @@ $("reserve").onclick = async () => {
     if (!auth.currentUser) await signInAnonymously(auth);
     const me = auth.currentUser.uid, list = [...sel].sort((a,b)=>a-b), upd = {};
     for (const n of list){
-      upd[`rifa/nums/${n}`] = { s:"r", t:serverTimestamp(), u:me };
-      upd[`rifa/buyers/${n}`] = { name, tel };
+      upd[`nums/${n}`] = { s:"r", t:serverTimestamp(), u:me };
+      upd[`buyers/${n}`] = { name, tel };
     }
     await update(ref(db), upd);
     try { localStorage.setItem("rifa-me", JSON.stringify({ name, tel })) } catch {}

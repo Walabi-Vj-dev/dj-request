@@ -184,15 +184,15 @@ onAuthStateChanged(auth, u => {
   subs.forEach(f => f()); subs = [];
   if (!u || u.isAnonymous){ $("login").hidden = false; $("app").hidden = true; return }
   $("who").textContent = u.displayName || u.email;
-  subs.push(onValue(ref(db,"rifa/buyers"), s => {
+  subs.push(onValue(ref(db,"buyers"), s => {
     B = s.val() || {}; $("login").hidden = true; $("app").hidden = false; renderAll();
   }, () => {
     $("lerr").textContent = `La cuenta ${u.email} no es la del administrador.`; $("lerr").hidden = false;
     $("login").hidden = false; $("app").hidden = true; signOut(auth);
   }));
-  subs.push(onValue(ref(db,"rifa/config"), s => { hasCfg = s.exists(); C = { ...DEF, ...(s.val()||{}) }; fillCfg(); renderAll() }));
-  subs.push(onValue(ref(db,"rifa/nums"), s => { N = s.val() || {}; renderAll() }));
-  subs.push(onValue(ref(db,"rifa/winner"), s => { W = s.val(); renderDraw(); renderGrid() }));
+  subs.push(onValue(ref(db,"config"), s => { hasCfg = s.exists(); C = { ...DEF, ...(s.val()||{}) }; fillCfg(); renderAll() }));
+  subs.push(onValue(ref(db,"nums"), s => { N = s.val() || {}; renderAll() }));
+  subs.push(onValue(ref(db,"winner"), s => { W = s.val(); renderDraw(); renderGrid() }));
 });
 
 // ---------- render ----------
@@ -299,8 +299,8 @@ function fillCfg(){
 
 // ---------- actions ----------
 async function write(upd, ok){ try { await update(ref(db), upd); if (ok) toast(ok) } catch (e) { console.error(e); toast("No se pudo guardar: " + (e.code||e.message)) } }
-function markPaid(list){ const u = {}; list.forEach(n => u[`rifa/nums/${n}/s`] = "p"); write(u, list.length>1?`${list.length} números pagados`:`${fmt(list[0])} pagado`) }
-function free(list){ const u = {}; list.forEach(n => { u[`rifa/nums/${n}`] = null; u[`rifa/buyers/${n}`] = null }); write(u, `Liberados: ${list.map(fmt).join(", ")}`) }
+function markPaid(list){ const u = {}; list.forEach(n => u[`nums/${n}/s`] = "p"); write(u, list.length>1?`${list.length} números pagados`:`${fmt(list[0])} pagado`) }
+function free(list){ const u = {}; list.forEach(n => { u[`nums/${n}`] = null; u[`buyers/${n}`] = null }); write(u, `Liberados: ${list.map(fmt).join(", ")}`) }
 
 document.addEventListener("click", e => {
   const v = e.target.closest("[data-v]");
@@ -326,8 +326,8 @@ $("apply").onclick = () => {
   if (name.length < 2){ toast("Escribí el nombre del comprador"); $("aname").focus(); return }
   const u = {};
   list.forEach(n => {
-    if (N[n]) u[`rifa/nums/${n}/s`] = st; else u[`rifa/nums/${n}`] = { s:st, t:serverTimestamp(), u:"admin" };
-    u[`rifa/buyers/${n}`] = { name, tel };
+    if (N[n]) u[`nums/${n}/s`] = st; else u[`nums/${n}`] = { s:st, t:serverTimestamp(), u:"admin" };
+    u[`buyers/${n}`] = { name, tel };
   });
   write(u, `${list.length} ${list.length>1?"números cargados":"número cargado"}`);
   sel.clear(); $("aname").value = ""; $("atel").value = ""; renderGrid(); renderDock();
@@ -340,7 +340,7 @@ $("savecfg").onclick = async () => {
   const g = k => $("c-"+k).value;
   const cfg = { title: g("title").trim() || "Rifa", prize: g("prize").trim(), price: Math.max(0, +g("price")||0), count: Math.min(10000, Math.max(10, parseInt(g("count"))||1000)),
     goal: Math.max(0, +g("goal")||0), date: g("date"), wa: g("wa").replace(/\D/g,""), alias: g("alias").trim(), holder: g("holder").trim(), method: g("method").trim(), open: $("c-open").checked };
-  try { await set(ref(db,"rifa/config"), cfg); toast("Configuración guardada. Ya la ven todos.") } catch (e) { toast("No se pudo guardar: " + (e.code||e.message)) }
+  try { await set(ref(db,"config"), cfg); toast("Configuración guardada. Ya la ven todos.") } catch (e) { toast("No se pudo guardar: " + (e.code||e.message)) }
 };
 $("copylink").onclick = () => copy(new URL("./", location.href).href, "Link copiado. Pegalo en WhatsApp o Instagram.");
 $("copylist").onclick = () => {
@@ -361,13 +361,13 @@ $("drawbtn").onclick = () => {
       const k = (Date.now()-t0)/dur;
       if (k < 1){ el.textContent = fmt(paid[Math.floor(Math.random()*paid.length)]); setTimeout(tick, 60 + k*200); return }
       el.textContent = fmt(win); o.querySelector("#wn").textContent = B[win]?.name ? `Ganó ${B[win].name}` : "Número ganador";
-      set(ref(db,"rifa/winner"), win).catch(e => toast("No se pudo guardar el ganador"));
+      set(ref(db,"winner"), win).catch(e => toast("No se pudo guardar el ganador"));
       setTimeout(() => o.remove(), 4000);
     })();
   });
 };
-$("setwin").onclick = () => { const w = parseInt($("wnum").value,10); if (isNaN(w) || w < 0 || w >= C.count){ toast(`Poné un número del ${fmt(0)} al ${fmt(C.count-1)}`); return } set(ref(db,"rifa/winner"), w).then(()=>toast("Ganador cargado")).catch(()=>toast("No se pudo guardar")) };
-$("clearwin").onclick = () => arm($("clearwin"), "¿Quitar? Tocá de nuevo", () => set(ref(db,"rifa/winner"), null));
+$("setwin").onclick = () => { const w = parseInt($("wnum").value,10); if (isNaN(w) || w < 0 || w >= C.count){ toast(`Poné un número del ${fmt(0)} al ${fmt(C.count-1)}`); return } set(ref(db,"winner"), w).then(()=>toast("Ganador cargado")).catch(()=>toast("No se pudo guardar")) };
+$("clearwin").onclick = () => arm($("clearwin"), "¿Quitar? Tocá de nuevo", () => set(ref(db,"winner"), null));
 </script>
 </body>
 </html>
