@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Rifa de la Moto</title>
+<meta name="description" content="Elegí tu número y ayudanos a comprar la moto.">
+<meta property="og:title" content="Rifa de la Moto">
+<meta property="og:description" content="Elegí tu número y reservalo al toque. $2.000 cada número.">
+<meta name="theme-color" content="#1c2840">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Figtree:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="rifa.css">
+</head>
+<body>
+<div class="wrap">
+  <section class="ticket">
+    <div class="main">
+      <span class="eyebrow" id="eyebrow">Bono contribución</span>
+      <h1 id="title">Rifa de la Moto</h1>
+      <p class="prize" id="prize"></p>
+      <div class="meta" id="meta"></div>
+    </div>
+    <div class="stub"><span class="lbl">Valor</span><span class="price" id="price">—</span><span class="per">por número</span></div>
+  </section>
+
+  <section class="winner" id="winner" hidden></section>
+
+  <section class="progress" id="progress"></section>
+
+  <section class="box" id="mine" hidden></section>
+
+  <section style="display:flex;flex-direction:column;gap:10px">
+    <div class="sechead">
+      <h2>Elegí tus números</h2>
+      <div class="legend"><span><i class="lg-free"></i>Libre</span><span><i class="lg-taken"></i>Vendido</span><span><i class="lg-r"></i>Tuyo</span><span><i class="lg-s"></i>Elegido</span></div>
+    </div>
+    <div class="tools">
+      <input type="search" id="find" inputmode="numeric" placeholder="Buscar un número" autocomplete="off">
+      <button class="btn ghost small" id="random">Uno al azar</button>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div class="grid" id="grid"><p class="loading">Cargando números…</p></div>
+  </section>
+
+  <ol class="how">
+    <li><span><b>Elegí</b> uno o varios números libres.</span></li>
+    <li><span><b>Reservalos</b> con tu nombre y celular. Nadie más los puede tomar.</span></li>
+    <li><span><b>Transferí</b> y mandá el comprobante por WhatsApp. Ahí queda confirmado.</span></li>
+  </ol>
+
+  <section class="box" id="pay" hidden></section>
+
+  <div class="dock" id="dock" hidden>
+    <div class="card">
+      <div class="top"><span class="chips" id="selchips"></span><button class="btn small ghost" id="clear">Limpiar</button></div>
+      <div class="row">
+        <input type="text" id="bname" placeholder="Nombre y apellido" autocomplete="name" maxlength="60">
+        <input type="tel" id="btel" placeholder="Celular (ej: 249 4123456)" autocomplete="tel" maxlength="25">
+      </div>
+      <div class="row" style="justify-content:space-between">
+        <span>Total <b class="big" id="seltotal"></b></span>
+        <button class="btn accent" id="reserve">Reservar</button>
+      </div>
+      <p class="err" id="err" hidden></p>
+    </div>
+  </div>
+
+  <footer>Los números reservados se confirman cuando el organizador recibe el pago.</footer>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue, update, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyBw0CqhfhOvgslp2n6gBuxOPxq_uA2hZHk",
+  authDomain: "pedi-tu-tema-al-dj.firebaseapp.com",
+  databaseURL: "https://pedi-tu-tema-al-dj-default-rtdb.firebaseio.com",
+  projectId: "pedi-tu-tema-al-dj",
+  storageBucket: "pedi-tu-tema-al-dj.firebasestorage.app",
+  messagingSenderId: "191645194240",
+  appId: "1:191645194240:web:541c2574d3ab80f1c660e5"
+});
+const db = getDatabase(app), auth = getAuth(app);
+
+const DEF = { title:"Rifa de la Moto", prize:"", price:2000, count:1000, goal:0, alias:"", holder:"", wa:"", date:"", method:"", open:true };
+const MAX_PICK = 30, PAGE = 100;
+let C = { ...DEF }, N = null, W = null, uid = null, sel = new Set(), page = 0, busy = false, toastT;
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const money = n => { try { return new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n||0) } catch { return "$"+n } };
+const digits = () => String(Math.max(1, C.count - 1)).length;
+const fmt = i => String(i).padStart(digits(), "0");
+const fdate = d => { if (!d) return "a confirmar"; const p = d.split("-"); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : d };
+const waNum = t => { let d = String(t||"").replace(/\D/g,""); if (!d) return ""; if (!d.startsWith("54")) d = "549" + d.replace(/^0/,""); return d };
+function toast(m){ let t=document.querySelector(".toast"); if(!t){t=document.createElement("div");t.className="toast";document.body.appendChild(t)} t.textContent=m; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>t.hidden=true,3200) }
+async function copy(text,msg){ try{ await navigator.clipboard.writeText(text); toast(msg||"Copiado") }catch{ toast("No se pudo copiar: mantené apretado para copiar") } }
+const loadMine = () => { try { return JSON.parse(localStorage.getItem("rifa-mine")||"[]") } catch { return [] } };
+const saveMine = a => { try { localStorage.setItem("rifa-mine", JSON.stringify(a)) } catch {} };
+try { const d = JSON.parse(localStorage.getItem("rifa-me")||"{}"); if (d.name) $("bname").value = d.name; if (d.tel) $("btel").value = d.tel } catch {}
+
+signInAnonymously(auth).catch(() => {});
+onAuthStateChanged(auth, u => { uid = u ? u.uid : null; renderGrid(); renderMine() });
+
+onValue(ref(db,"rifa/config"), s => { C = { ...DEF, ...(s.val()||{}) }; renderAll() });
+onValue(ref(db,"rifa/nums"), s => {
+  N = s.val() || {};
+  let lost = [];
+  sel.forEach(n => { if (N[n]) { sel.delete(n); lost.push(fmt(n)) } });
+  if (lost.length) toast(`Alguien acaba de reservar ${lost.join(", ")}`);
+  renderProgress(); renderGrid(); renderTabs(); renderDock(); renderMine();
+}, () => { $("grid").innerHTML = '<p class="err">No se pudo conectar. Revisá tu internet y recargá.</p>' });
+onValue(ref(db,"rifa/winner"), s => { W = s.val(); renderWinner(); renderGrid() });
+
+function renderAll(){ renderHeader(); renderProgress(); renderWinner(); renderTabs(); renderGrid(); renderDock(); renderPay(); renderMine() }
+
+function renderHeader(){
+  document.title = C.title;
+  $("eyebrow").textContent = `Bono contribución · ${C.count} números`;
+  $("title").textContent = C.title;
+  $("prize").innerHTML = C.prize ? `Premio: <b>${esc(C.prize)}</b>` : "";
+  $("meta").innerHTML = `<span>Sorteo <b>${esc(fdate(C.date))}</b></span>${C.method ? `<span>${esc(C.method)}</span>` : ""}`;
+  $("price").textContent = money(C.price);
+}
+function stats(){ let r=0,p=0; if(N) for (const k in N){ if(+k>=C.count) continue; N[k].s==="p"?p++:r++ } return { r, p, sold:r+p, free:C.count-r-p } }
+function renderProgress(){
+  if (!N) { $("progress").innerHTML = ""; return }
+  const st = stats(), pct = C.count ? st.sold / C.count * 100 : 0;
+  $("progress").innerHTML = `<div class="row"><span><b class="big">${st.sold}</b> de ${C.count} vendidos</span><span>Quedan <b class="big">${st.free}</b> libres</span></div>
+    <div class="bar" role="progressbar" aria-label="Números vendidos" aria-valuenow="${Math.round(pct)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div>`;
+}
+function renderWinner(){
+  const w = $("winner");
+  if (W == null || W === "") { w.hidden = true; return }
+  w.hidden = false;
+  w.innerHTML = `<span class="n">${fmt(W)}</span><div><h2>¡Número ganador!</h2><p>Gracias a todos por ayudar.</p></div>`;
+}
+function pages(){ return Math.ceil(C.count / PAGE) }
+function renderTabs(){
+  const t = $("tabs");
+  if (pages() <= 1) { t.hidden = true; return }
+  t.hidden = false;
+  if (page >= pages()) page = 0;
+  let h = "";
+  for (let p = 0; p < pages(); p++){
+    const a = p*PAGE, b = Math.min(C.count, a+PAGE) - 1;
+    let free = 0; for (let i=a;i<=b;i++) if (!N || !N[i]) free++;
+    h += `<button class="${p===page?"on":""}" data-p="${p}" aria-pressed="${p===page}">${fmt(a)}–${fmt(b)}<small>${free} libres</small></button>`;
+  }
+  t.innerHTML = h;
+}
+function renderGrid(){
+  if (!N) return;
+  const a = page*PAGE, b = Math.min(C.count, a+PAGE);
+  let h = "";
+  for (let i=a;i<b;i++){
+    const e = N[i]; let cls = "num", dis = "", lbl = `Número ${fmt(i)}`;
+    if (e){ if (uid && e.u === uid) { cls += " taken mine"; lbl += ", tuyo" } else { cls += " taken"; lbl += ", vendido" } dis = " disabled" }
+    else if (sel.has(i)) cls += " sel";
+    if (W != null && +W === i) cls += " win";
+    h += `<button class="${cls}" data-n="${i}" aria-label="${lbl}" aria-pressed="${sel.has(i)}"${dis}>${fmt(i)}</button>`;
+  }
+  $("grid").innerHTML = h;
+}
+function renderDock(){
+  const d = $("dock");
+  if (!sel.size || C.open === false) { d.hidden = true; return }
+  d.hidden = false;
+  const list = [...sel].sort((x,y)=>x-y);
+  $("selchips").textContent = list.map(fmt).join(" · ");
+  $("seltotal").textContent = money(list.length * C.price);
+  $("reserve").textContent = list.length > 1 ? `Reservar ${list.length} números` : "Reservar";
+}
+function renderPay(){
+  const p = $("pay");
+  if (!C.alias && !C.wa) { p.hidden = true; return }
+  p.hidden = false;
+  p.innerHTML = `<h2>Para pagar</h2>
+    ${C.alias ? `<div class="row"><span>Alias: <code class="copyable">${esc(C.alias)}</code></span><button class="btn small ghost" data-copy="alias">Copiar alias</button></div>` : ""}
+    ${C.holder ? `<p class="note">Titular: ${esc(C.holder)}</p>` : ""}
+    ${C.wa ? `<p class="note">Comprobantes por WhatsApp al <b style="user-select:all">+${esc(C.wa)}</b></p>` : ""}`;
+}
+function renderMine(){
+  const box = $("mine");
+  const mine = loadMine();
+  if (!mine.length || !N || !uid) { box.hidden = true; return }
+  const live = mine.filter(n => N[n] && N[n].u === uid);
+  const pend = live.filter(n => N[n].s !== "p"), paid = live.filter(n => N[n].s === "p");
+  const gone = mine.filter(n => !N[n] || N[n].u !== uid);
+  box.hidden = false;
+  let h = `<h2>Tus números</h2><div>${live.map(n=>`<span class="chip ${N[n].s}">${fmt(n)}</span>`).join("")}${gone.map(n=>`<span class="chip x" title="Liberado">${fmt(n)}</span>`).join("")}</div>`;
+  if (pend.length) h += `<p class="note">${pend.length === 1 ? "1 número pendiente" : pend.length+" números pendientes"} de pago: ${money(pend.length*C.price)}. ${C.wa ? "Mandá el comprobante para confirmarlos." : ""}</p>${C.wa ? `<div class="row"><a class="btn small accent" target="_blank" rel="noopener" href="${waLink(pend)}">Mandar comprobante por WhatsApp</a></div>` : ""}`;
+  if (paid.length) h += `<p class="note">Confirmados: ${paid.map(fmt).join(", ")}. ¡Gracias!</p>`;
+  if (gone.length) h += `<p class="note">Liberados por el organizador: ${gone.map(fmt).join(", ")}.</p>`;
+  box.innerHTML = h;
+}
+function waLink(list){
+  const name = $("bname").value.trim();
+  const msg = `Hola! Reservé ${list.length>1?"los números":"el número"} ${list.map(fmt).join(", ")} de la rifa "${C.title}" (${money(list.length*C.price)}).${name?` Soy ${name}.`:""} Te paso el comprobante.`;
+  return `https://wa.me/${String(C.wa).replace(/\D/g,"")}?text=${encodeURIComponent(msg)}`;
+}
+
+function pick(n){
+  if (N && N[n]) return;
+  if (sel.has(n)) sel.delete(n);
+  else { if (sel.size >= MAX_PICK) { toast(`Podés reservar hasta ${MAX_PICK} números por vez`); return } sel.add(n) }
+  $("err").hidden = true;
+  renderGrid(); renderDock();
+}
+function goTo(n, select){
+  page = Math.floor(n / PAGE); renderTabs(); renderGrid();
+  const b = document.querySelector(`[data-n="${n}"]`);
+  if (b){ b.scrollIntoView({block:"center",behavior:"smooth"}); b.classList.add("flash"); setTimeout(()=>b.classList.remove("flash"),1300) }
+  if (select && N && !N[n] && !sel.has(n)) pick(n);
+}
+
+document.addEventListener("click", e => {
+  const n = e.target.closest("[data-n]"); if (n){ pick(+n.dataset.n); return }
+  const p = e.target.closest("[data-p]"); if (p){ page = +p.dataset.p; renderTabs(); renderGrid(); return }
+  const c = e.target.closest("[data-copy]"); if (c){ copy(C.alias, "Alias copiado"); return }
+  if (e.target.closest("#clear")){ sel.clear(); renderGrid(); renderDock(); return }
+  if (e.target.closest("#close-ok")){ document.querySelector(".overlay")?.remove(); return }
+});
+$("random").onclick = () => {
+  if (!N) return;
+  const free = []; for (let i=0;i<C.count;i++) if (!N[i] && !sel.has(i)) free.push(i);
+  if (!free.length){ toast("No quedan números libres"); return }
+  goTo(free[Math.floor(Math.random()*free.length)], true);
+};
+$("find").addEventListener("input", e => {
+  const v = e.target.value.replace(/\D/g,""); if (!v) return;
+  const n = parseInt(v,10);
+  if (v.length >= digits() || n*10 >= C.count){
+    if (n >= C.count){ toast(`Los números van del ${fmt(0)} al ${fmt(C.count-1)}`); return }
+    goTo(n, false);
+    if (N && N[n]) toast(`El ${fmt(n)} ya está vendido`);
+  }
+});
+$("find").addEventListener("keydown", e => { if (e.key === "Enter"){ const n = parseInt(e.target.value,10); if (!isNaN(n) && n < C.count) goTo(n, true) } });
+
+$("reserve").onclick = async () => {
+  if (busy || !sel.size) return;
+  const name = $("bname").value.trim().replace(/\s+/g," "), tel = $("btel").value.trim();
+  const err = m => { $("err").textContent = m; $("err").hidden = false };
+  if (name.length < 3) { err("Escribí tu nombre y apellido."); $("bname").focus(); return }
+  if (tel.replace(/\D/g,"").length < 8) { err("Escribí un celular válido, así te pueden contactar."); $("btel").focus(); return }
+  busy = true; $("reserve").disabled = true; $("reserve").textContent = "Reservando…";
+  try {
+    if (!auth.currentUser) await signInAnonymously(auth);
+    const me = auth.currentUser.uid, list = [...sel].sort((a,b)=>a-b), upd = {};
+    for (const n of list){
+      upd[`rifa/nums/${n}`] = { s:"r", t:serverTimestamp(), u:me };
+      upd[`rifa/buyers/${n}`] = { name, tel };
+    }
+    await update(ref(db), upd);
+    try { localStorage.setItem("rifa-me", JSON.stringify({ name, tel })) } catch {}
+    saveMine([...new Set([...loadMine(), ...list])]);
+    sel.clear(); renderDock(); renderGrid(); renderMine();
+    showDone(list);
+  } catch (e) {
+    console.error(e);
+    err("No se pudo reservar: alguno de esos números lo acaba de tomar otra persona. Revisá la grilla y probá de nuevo.");
+  } finally { busy = false; $("reserve").disabled = false; renderDock() }
+};
+
+function showDone(list){
+  const total = money(list.length * C.price);
+  const o = document.createElement("div"); o.className = "overlay";
+  o.innerHTML = `<div class="card" role="dialog" aria-modal="true" aria-labelledby="dt">
+    <span class="eyebrow">Reservado</span>
+    <h2 id="dt">¡Listo! ${list.length>1?"Tus números son tuyos":"El número es tuyo"}</h2>
+    <p class="chips" style="font-size:20px">${list.map(fmt).join(" · ")}</p>
+    <p style="margin:0">Para confirmarlos, transferí <b>${total}</b>${C.alias?` al alias <code class="copyable">${esc(C.alias)}</code>`:""} y mandá el comprobante.</p>
+    <div class="row">
+      ${C.alias?`<button class="btn ghost" data-copy="alias">Copiar alias</button>`:""}
+      ${C.wa?`<a class="btn accent" target="_blank" rel="noopener" href="${waLink(list)}">Enviar comprobante por WhatsApp</a>`:""}
+    </div>
+    <button class="btn ghost" id="close-ok">Cerrar</button>
+  </div>`;
+  document.body.appendChild(o);
+}
+renderAll();
+</script>
+</body>
+</html>
