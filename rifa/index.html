@@ -33,7 +33,7 @@
   <section style="display:flex;flex-direction:column;gap:10px">
     <div class="sechead">
       <h2>Elegí tus números</h2>
-      <div class="legend"><span><i class="lg-free"></i>Libre</span><span><i class="lg-taken"></i>Vendido</span><span><i class="lg-r"></i>Tuyo</span><span><i class="lg-s"></i>Elegido</span></div>
+      <div class="legend"><span><i class="lg-free"></i>Libre</span><span><i class="lg-r"></i>Reservado</span><span><i class="lg-taken"></i>Vendido</span><span><i class="lg-mine"></i>Tuyo</span><span><i class="lg-s"></i>Elegido</span></div>
     </div>
     <div class="tools">
       <input type="search" id="find" inputmode="numeric" placeholder="Buscar un número" autocomplete="off">
@@ -45,8 +45,8 @@
 
   <ol class="how">
     <li><span><b>Elegí</b> uno o varios números libres.</span></li>
-    <li><span><b>Reservalos</b> con tu nombre y celular. Nadie más los puede tomar.</span></li>
-    <li><span><b>Transferí</b> y mandá el comprobante por WhatsApp. Ahí queda confirmado.</span></li>
+    <li><span><b>Reservalos</b> con tu nombre y celular. Quedan en amarillo y nadie más los puede tomar.</span></li>
+    <li><span><b>Transferí</b> y mandá el comprobante por WhatsApp. Al confirmarse el pago pasa a gris, vendido.</span></li>
   </ol>
 
   <section class="box" id="pay" hidden></section>
@@ -158,7 +158,7 @@ function renderGrid(){
   let h = "";
   for (let i=a;i<b;i++){
     const e = N[i]; let cls = "num", dis = "", lbl = `Número ${fmt(i)}`;
-    if (e){ if (uid && e.u === uid) { cls += " taken mine"; lbl += ", tuyo" } else { cls += " taken"; lbl += ", vendido" } dis = " disabled" }
+    if (e){ if (e.s === "p") { cls += " taken"; lbl += ", vendido" } else { cls += " held"; lbl += ", reservado" } if (uid && e.u === uid) { cls += " mine"; lbl += " (tuyo)" } dis = " disabled" }
     else if (sel.has(i)) cls += " sel";
     if (W != null && +W === i) cls += " win";
     h += `<button class="${cls}" data-n="${i}" aria-label="${lbl}" aria-pressed="${sel.has(i)}"${dis}>${fmt(i)}</button>`;
@@ -253,7 +253,7 @@ $("reserve").onclick = async () => {
     const me = auth.currentUser.uid, list = [...sel].sort((a,b)=>a-b), upd = {};
     for (const n of list){
       upd[`nums/${n}`] = { s:"r", t:serverTimestamp(), u:me };
-      upd[`buyers/${n}`] = { name, tel };
+      upd[`buyers/${n}`] = { name, tel, u:me };
     }
     await update(ref(db), upd);
     try { localStorage.setItem("rifa-me", JSON.stringify({ name, tel })) } catch {}

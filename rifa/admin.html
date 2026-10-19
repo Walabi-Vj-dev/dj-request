@@ -23,7 +23,13 @@
 .views button{flex:1;border:0;background:transparent;padding:9px 6px;border-radius:9px;font-weight:700;font-size:14px}
 .views button.on{background:var(--ink);color:var(--bg)}
 .buyer{background:var(--paper);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;border-left:4px solid var(--res)}
-.buyer.paid{border-left-color:var(--paid)}
+.buyer.paid{border-left-color:var(--line)}
+.buyer.fresh{box-shadow:0 0 0 2px var(--accent)}
+.badge{background:var(--accent);color:var(--accent-ink);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:6px;margin-left:8px;vertical-align:2px}
+.newres{background:var(--accent);color:var(--accent-ink);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;animation:pop .5s}
+.newres b{font-size:16px}
+.newres .btn{background:var(--accent-ink);color:var(--accent)}
+@keyframes pop{0%{transform:scale(.96);opacity:0}100%{transform:none;opacity:1}}
 .buyer .h{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}
 .buyer .h b{font-size:16px}
 .buyer .h small{color:var(--muted);font-size:13px}
@@ -54,10 +60,12 @@
   <div id="app" hidden style="display:flex;flex-direction:column;gap:16px">
     <div class="adminbar">
       <span class="t" id="who">Administrador</span>
+      <button class="btn small" id="notifbtn" hidden>Activar avisos</button>
       <button class="btn small" id="copylink">Copiar link para compartir</button>
       <a class="btn small ghost" href="./" target="_blank" rel="noopener">Ver página pública</a>
       <button class="btn small ghost" id="logout">Salir</button>
     </div>
+    <div class="newres" id="newres" hidden role="status" aria-live="polite"></div>
     <div class="warn" id="setupwarn" hidden></div>
     <div class="stats" id="stats"></div>
     <div class="progress" id="progress"></div>
@@ -82,7 +90,7 @@
     <section id="v-nums" hidden style="display:flex;flex-direction:column;gap:10px">
       <div class="sechead">
         <p class="note">Tocá números para venderlos a mano, marcarlos pagados o liberarlos.</p>
-        <div class="legend"><span><i class="lg-free"></i>Libre</span><span><i class="lg-r"></i>Reservado</span><span><i class="lg-p"></i>Pagado</span><span><i class="lg-s"></i>Elegido</span></div>
+        <div class="legend"><span><i class="lg-free"></i>Libre</span><span><i class="lg-r"></i>Reservado</span><span><i class="lg-p"></i>Pagado (vendido)</span><span><i class="lg-s"></i>Elegido</span></div>
       </div>
       <div class="tools"><input type="search" id="find" inputmode="numeric" placeholder="Ir al número" autocomplete="off"></div>
       <div class="tabs" id="tabs"></div>
@@ -170,6 +178,30 @@ function arm(btn, label, fn){ // confirmación en dos toques
   setTimeout(()=>{ if (btn.dataset.armed){ delete btn.dataset.armed; btn.classList.remove("armed"); btn.textContent = old } }, 3500);
 }
 
+// ---------- avisos de reservas nuevas ----------
+let seen = null, freshSet = new Set(), unread = 0, actx = null;
+document.addEventListener("click", () => { try { if (!actx) actx = new (window.AudioContext||window.webkitAudioContext)(); if (actx.state === "suspended") actx.resume() } catch {} }, { capture:true });
+function beep(){ try { if (!actx) return; const t = actx.currentTime; [880, 1320].forEach((f,i) => { const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = f; o.connect(g); g.connect(actx.destination); g.gain.setValueAtTime(.0001, t+i*.18); g.gain.exponentialRampToValueAtTime(.25, t+i*.18+.02); g.gain.exponentialRampToValueAtTime(.0001, t+i*.18+.16); o.start(t+i*.18); o.stop(t+i*.18+.17) }) } catch {} }
+function setTitle(){ document.title = (unread ? `(${unread}) ` : "") + "Rifa · Administrador" }
+function announce(keys){
+  keys.forEach(k => freshSet.add(+k));
+  const byName = {};
+  keys.forEach(k => { const n = (B[k] && B[k].name) || "Alguien"; (byName[n] = byName[n] || []).push(fmt(+k)) });
+  const text = Object.entries(byName).map(([n,l]) => `${n} reservó ${l.join(", ")}`).join(" · ");
+  unread += 1; setTitle();
+  const box = $("newres");
+  box.innerHTML = `<span style="flex:1;min-width:0"><b>Nueva reserva</b><br>${esc(text)}</span><button class="btn small" id="seenres">Ver reservas</button>`;
+  box.hidden = false;
+  beep();
+  try { if ("Notification" in window && Notification.permission === "granted" && document.visibilityState !== "visible") new Notification("Nueva reserva en la rifa", { body: text, tag: "rifa" }) } catch {}
+  renderBuyers();
+}
+function clearFresh(){ unread = 0; setTitle(); $("newres").hidden = true }
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && unread) setTitle() });
+function notifUI(){ const b = $("notifbtn"); b.hidden = !("Notification" in window) || Notification.permission !== "default" }
+$("notifbtn").onclick = async () => { try { await Notification.requestPermission() } catch {} notifUI(); if (Notification.permission === "granted") toast("Listo: te aviso aunque estés en otra pestaña") };
+notifUI();
+
 // ---------- login ----------
 const provider = new GoogleAuthProvider();
 getRedirectResult(auth).catch(e => showLoginErr(e));
@@ -191,7 +223,13 @@ onAuthStateChanged(auth, u => {
     $("login").hidden = false; $("app").hidden = true; signOut(auth);
   }));
   subs.push(onValue(ref(db,"config"), s => { hasCfg = s.exists(); C = { ...DEF, ...(s.val()||{}) }; fillCfg(); renderAll() }));
-  subs.push(onValue(ref(db,"nums"), s => { N = s.val() || {}; renderAll() }));
+  subs.push(onValue(ref(db,"nums"), s => {
+    N = s.val() || {};
+    const keys = Object.keys(N);
+    if (seen){ const fresh = keys.filter(k => !seen.has(k) && N[k].u !== "admin"); if (fresh.length) setTimeout(() => announce(fresh), 700) }
+    seen = new Set(keys);
+    renderAll();
+  }));
   subs.push(onValue(ref(db,"winner"), s => { W = s.val(); renderDraw(); renderGrid() }));
 });
 
@@ -238,8 +276,9 @@ function renderBuyers(){
     const key = e.nums.join(","), wa = waNum(e.tel);
     const msg = e.r.length ? `Hola ${e.name.split(" ")[0]}! Te escribo por la rifa "${C.title}". Tenés reservado ${e.r.length>1?"los números":"el número"} ${e.r.map(fmt).join(", ")} (${money(e.r.length*C.price)}).${C.alias?` El alias es ${C.alias}.`:""} Cuando transfieras mandame el comprobante. Gracias!`
                          : `Hola ${e.name.split(" ")[0]}! Confirmado tu pago de la rifa "${C.title}": ${e.p.map(fmt).join(", ")}. Gracias por ayudar!`;
-    return `<div class="buyer ${e.r.length?"":"paid"}">
-      <div class="h"><b>${esc(e.name)}</b><small>${esc(e.tel)} · ${ago(e.t)}</small></div>
+    const isNew = e.nums.some(n => freshSet.has(n));
+    return `<div class="buyer ${e.r.length?"":"paid"} ${isNew?"fresh":""}">
+      <div class="h"><b>${esc(e.name)}${isNew?'<span class="badge">Nueva</span>':""}</b><small>${esc(e.tel)} · ${ago(e.t)}</small></div>
       <div>${e.nums.map(n=>`<span class="chip ${N[n].s}">${fmt(n)}</span>`).join("")}</div>
       <div class="row">
         ${e.r.length ? `<span class="note" style="margin-right:auto">Debe ${money(e.r.length*C.price)}</span><button class="btn small accent" data-paid="${e.r.join(",")}">Marcar pagado</button>` : `<span class="note" style="margin-right:auto">Pagó ${money(e.p.length*C.price)}</span>`}
@@ -299,10 +338,11 @@ function fillCfg(){
 
 // ---------- actions ----------
 async function write(upd, ok){ try { await update(ref(db), upd); if (ok) toast(ok) } catch (e) { console.error(e); toast("No se pudo guardar: " + (e.code||e.message)) } }
-function markPaid(list){ const u = {}; list.forEach(n => u[`nums/${n}/s`] = "p"); write(u, list.length>1?`${list.length} números pagados`:`${fmt(list[0])} pagado`) }
+function markPaid(list){ list.forEach(n => freshSet.delete(n)); const u = {}; list.forEach(n => u[`nums/${n}/s`] = "p"); write(u, list.length>1?`${list.length} números pagados`:`${fmt(list[0])} pagado`) }
 function free(list){ const u = {}; list.forEach(n => { u[`nums/${n}`] = null; u[`buyers/${n}`] = null }); write(u, `Liberados: ${list.map(fmt).join(", ")}`) }
 
 document.addEventListener("click", e => {
+  if (e.target.closest("#seenres")){ clearFresh(); document.querySelector('[data-v="res"]').click(); filter = "r"; document.querySelectorAll("[data-f]").forEach(b => b.classList.toggle("on", b.dataset.f === "r")); renderBuyers(); $("buyers").scrollIntoView({behavior:"smooth"}); return }
   const v = e.target.closest("[data-v]");
   if (v){ document.querySelectorAll("[data-v]").forEach(b => b.classList.toggle("on", b===v)); ["res","nums","cfg","draw"].forEach(x => $("v-"+x).hidden = x !== v.dataset.v); return }
   const f = e.target.closest("[data-f]");
