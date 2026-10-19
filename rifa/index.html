@@ -10,7 +10,7 @@
 <meta name="theme-color" content="#1c2840">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Figtree:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="rifa.css?v=3">
+<link rel="stylesheet" href="rifa.css?v=4">
 </head>
 <body>
 <div class="wrap">
@@ -24,9 +24,9 @@
     <div class="stub"><span class="lbl" id="pricelbl">Valor</span><span class="price" id="price">—</span><span class="per" id="perlbl">por número</span></div>
   </section>
 
-  <section class="prizes" id="prizes" hidden></section>
+  <section class="winner" id="winner" hidden aria-live="polite"></section>
 
-  <section class="winner" id="winner" hidden></section>
+  <details class="prizes" id="prizes" hidden></details>
 
   <section class="progress" id="progress"></section>
 
@@ -134,12 +134,21 @@ function renderHeader(){
   $("how").hidden = !steps.length;
   setT("footer", T("footer"));
 }
+let prizesOpen = false;
+$("prizes").addEventListener("toggle", e => { prizesOpen = e.target.open });
 function renderPrizes(){
   const box = $("prizes"), list = prizeList(C);
   if (!list.length){ box.hidden = true; return }
   box.hidden = false;
-  const sp = txt(C, "sponsorLabel"), title = txt(C, "prizesTitle");
-  box.innerHTML = (title ? `<h2>${esc(title)}</h2>` : "") + `<div class="plist">${list.map((p, i) => {
+  const sp = txt(C, "sponsorLabel"), title = txt(C, "prizesTitle") || "Premios";
+  const first = list[0], logos = list.filter(p => p.logo).slice(0, 4);
+  const teaser = `1° ${first.title || "a confirmar"}${list.length > 1 ? ` y ${list.length - 1} premio${list.length > 2 ? "s" : ""} más` : ""}`;
+  box.innerHTML = `<summary>
+      <span class="sum"><b>${esc(title)} · ${list.length}</b><span>${esc(teaser)}</span></span>
+      <span class="minis">${logos.map(p => `<img src="${esc(p.logo)}" alt="">`).join("")}</span>
+      <span class="chev" aria-hidden="true">▾</span>
+    </summary>
+    <div class="plist">${list.map((p, i) => {
     const w = W ? W[p.id] : null, won = w != null && w !== "";
     return `<article class="pcard ${won ? "won" : ""}">
       <span class="pos">${i + 1}°</span>
@@ -151,6 +160,7 @@ function renderPrizes(){
       </div>
       ${p.logo ? `<img class="plogo" src="${esc(p.logo)}" alt="${esc(p.sponsor ? "Logo de " + p.sponsor : "Logo")}" loading="lazy">` : "<span></span>"}
     </article>`}).join("")}</div>`;
+  box.open = prizesOpen;
 }
 function stats(){ let r=0,p=0; if(N) for (const k in N){ if(+k>=C.count) continue; N[k].s==="p"?p++:r++ } return { r, p, sold:r+p, free:C.count-r-p } }
 function renderProgress(){
@@ -159,12 +169,25 @@ function renderProgress(){
   $("progress").innerHTML = `<div class="row"><span><b class="big">${st.sold}</b> de ${C.count} vendidos</span><span>Quedan <b class="big">${st.free}</b> libres</span></div>
     <div class="bar" role="progressbar" aria-label="Números vendidos" aria-valuenow="${Math.round(pct)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div>`;
 }
+let winKey = "";
 function renderWinner(){
-  const w = $("winner"), ids = new Set(prizeList(C).map(p => p.id));
-  const loose = Object.entries(W || {}).filter(([k, v]) => !ids.has(k) && v != null && v !== "");
-  if (!loose.length) { w.hidden = true; return }
-  w.hidden = false;
-  w.innerHTML = `<span class="n">${loose.map(([, v]) => fmt(+v)).join(" · ")}</span><div><h2>¡Número ganador!</h2><p>Gracias a todos por ayudar.</p></div>`;
+  const w = $("winner"), list = prizeList(C), ids = new Set(list.map(p => p.id));
+  const rows = [];
+  list.forEach((p, i) => { const v = W && W[p.id]; if (v != null && v !== "") rows.push({ n:+v, label:prizeLabel(p, i), title:p.title || "" }) });
+  Object.entries(W || {}).forEach(([k, v]) => { if (!ids.has(k) && v != null && v !== "") rows.push({ n:+v, label:"Número ganador", title:"" }) });
+  if (!rows.length){ w.hidden = true; winKey = ""; return }
+  const key = JSON.stringify(rows);
+  if (key === winKey && !w.hidden) return; // no reiniciar la animación si no cambió nada
+  winKey = key; w.hidden = false;
+  const cols = ["var(--sel)","var(--res)","var(--sold)","var(--mine)","#fff"];
+  const conf = Array.from({ length: 22 }, (_, i) => `<i style="left:${(i * 4.6 + Math.random() * 3).toFixed(1)}%;background:${cols[i % cols.length]};animation-duration:${(2.6 + Math.random() * 2.4).toFixed(2)}s;animation-delay:${(-Math.random() * 4).toFixed(2)}s"></i>`).join("");
+  const solo = rows.length === 1;
+  w.innerHTML = `<div class="confetti" aria-hidden="true">${conf}</div>
+    <h2>${solo ? "¡Número ganador!" : "¡Tenemos ganadores!"}</h2>
+    <div class="wlist">${rows.map((r, i) => `<div class="wi ${solo ? "solo" : ""}" style="animation-delay:${(.15 + i * .12).toFixed(2)}s">
+      <span class="n">${fmt(r.n)}</span>
+      <span class="wl"><b>${esc(r.label)}</b>${r.title ? esc(r.title) : ""}</span></div>`).join("")}</div>
+    <p>Gracias a todos por ayudar.</p>`;
 }
 function pages(){ return Math.ceil(C.count / PAGE) }
 function renderTabs(){
