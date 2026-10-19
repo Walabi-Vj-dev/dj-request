@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#1c2840">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Figtree:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="rifa.css?v=4">
+<link rel="stylesheet" href="rifa.css?v=5">
 <style>
 .adminbar{background:var(--ink);color:var(--bg);border-radius:14px;padding:12px 14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .adminbar .t{font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin-right:auto;min-width:0;overflow-wrap:anywhere}
@@ -59,6 +59,9 @@ details.texts .fields{margin-top:12px}
 .drow .row{grid-column:2}
 .drow input{flex:1 1 120px;width:auto}
 .drow .w{font-size:14px}
+.crow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.crow label{display:flex;flex-direction:column;gap:2px;font-size:12px;font-weight:600;flex:1 1 110px;min-width:0}
+.crow .sv{font-size:12px;color:var(--sold);font-weight:700;flex:1 1 100%}
 </style>
 </head>
 <body>
@@ -152,6 +155,12 @@ details.texts .fields{margin-top:12px}
         <label>Cómo se sortea<input type="text" id="c-method" maxlength="120" placeholder="Quiniela Nacional nocturna, últimas 3 cifras"></label>
         <label class="check wide"><input type="checkbox" id="c-open"> Reservas abiertas (destildá para cerrar la venta)</label>
       </div>
+      <div class="texts" style="border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:10px">
+        <div class="sechead"><b style="font-size:15px">Combos</b><label class="check" style="display:flex;font-size:14px;font-weight:600"><input type="checkbox" id="c-combosOn"> Mostrar combos</label></div>
+        <p class="note">Ej: 6 números $10.000. El total se calcula solo con el precio más conveniente para el comprador.</p>
+        <div class="list" id="combolist"></div>
+        <div><button class="btn small ghost" id="cadd" type="button">+ Agregar combo</button></div>
+      </div>
       <details class="texts" open>
         <summary>Textos de la página</summary>
         <p class="note">Todo lo que se lee en la página pública. Si dejás un campo vacío, ese texto no se muestra.</p>
@@ -171,7 +180,7 @@ details.texts .fields{margin-top:12px}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, onValue, update, set, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-import { TXT, txt, prizeList, winMap, prizeLabel } from "./shared.js?v=3";
+import { TXT, txt, prizeList, winMap, prizeLabel, combos, cost } from "./shared.js?v=5";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const app = initializeApp({
@@ -260,7 +269,13 @@ onAuthStateChanged(auth, u => {
 });
 
 // ---------- render ----------
-function stats(){ let r=0,p=0; for (const k in N){ if (+k>=C.count) continue; N[k].s==="p"?p++:r++ } return { r, p, sold:r+p, free:C.count-r-p, raised:p*C.price, owed:r*C.price } }
+function stats(){
+  let r=0,p=0; for (const k in N){ if (+k>=C.count) continue; N[k].s==="p"?p++:r++ }
+  let raised = 0, owed = 0;
+  for (const g of groups()){ const all = cost(g.nums.length, C).total, pd = cost(g.p.length, C).total; raised += pd; owed += all - pd }
+  return { r, p, sold:r+p, free:C.count-r-p, raised, owed };
+}
+const debt = e => cost(e.nums.length, C).total - cost(e.p.length, C).total;
 function renderAll(){ renderStats(); renderBuyers(); renderTabs(); renderGrid(); renderDock(); renderDraw(); renderSetup() }
 function renderSetup(){
   const w = $("setupwarn"), miss = [];
@@ -300,14 +315,14 @@ function renderBuyers(){
   if (!list.length){ $("buyers").innerHTML = `<p class="note">${all ? "No hay compradores con ese filtro." : "Todavía no hay reservas. Copiá el link y compartilo."}</p>`; return }
   $("buyers").innerHTML = list.map(e => {
     const key = e.nums.join(","), wa = waNum(e.tel);
-    const msg = e.r.length ? `Hola ${e.name.split(" ")[0]}! Te escribo por la rifa "${C.title}". Tenés reservado ${e.r.length>1?"los números":"el número"} ${e.r.map(fmt).join(", ")} (${money(e.r.length*C.price)}).${C.alias?` El alias es ${C.alias}.`:""} Cuando transfieras mandame el comprobante. Gracias!`
+    const msg = e.r.length ? `Hola ${e.name.split(" ")[0]}! Te escribo por la rifa "${C.title}". Tenés reservado ${e.r.length>1?"los números":"el número"} ${e.r.map(fmt).join(", ")} (${money(debt(e))}).${C.alias?` El alias es ${C.alias}.`:""} Cuando transfieras mandame el comprobante. Gracias!`
                          : `Hola ${e.name.split(" ")[0]}! Confirmado tu pago de la rifa "${C.title}": ${e.p.map(fmt).join(", ")}. Gracias por ayudar!`;
     const isNew = e.nums.some(n => freshSet.has(n));
     return `<div class="buyer ${e.r.length?"":"paid"} ${isNew?"fresh":""}">
       <div class="h"><b>${esc(e.name)}${isNew?'<span class="badge">Nueva</span>':""}</b><small>${esc(e.tel)} · ${ago(e.t)}</small></div>
       <div>${e.nums.map(n=>`<span class="chip ${N[n].s}">${fmt(n)}</span>`).join("")}</div>
       <div class="row">
-        ${e.r.length ? `<span class="note" style="margin-right:auto">Debe ${money(e.r.length*C.price)}</span><button class="btn small accent" data-paid="${e.r.join(",")}">Marcar pagado</button>` : `<span class="note" style="margin-right:auto">Pagó ${money(e.p.length*C.price)}</span>`}
+        ${e.r.length ? `<span class="note" style="margin-right:auto">Debe ${money(debt(e))}</span><button class="btn small accent" data-paid="${e.r.join(",")}">Marcar pagado</button>` : `<span class="note" style="margin-right:auto">Pagó ${money(cost(e.p.length, C).total)}</span>`}
         ${wa ? `<a class="btn small ghost" target="_blank" rel="noopener" href="https://wa.me/${wa}?text=${encodeURIComponent(msg)}">WhatsApp</a>` : ""}
         <button class="btn small danger" data-free="${key}">Liberar</button>
       </div></div>`;
@@ -367,7 +382,27 @@ function fillCfg(){
   $("c-open").checked = C.open !== false;
   if (!$("textfields").children.length) $("textfields").innerHTML = TXT.map(([k,l]) => `<label class="${/^step|subtitle|footer/.test(k)?"wide":""}">${esc(l)}<input type="text" id="t-${k}" maxlength="200"></label>`).join("");
   for (const [k] of TXT){ const el = $("t-"+k); if (document.activeElement !== el) el.value = txt(C, k) }
+  if (!$("v-cfg").contains(document.activeElement)) { CB = null; renderCombosEditor() }
 }
+
+// ---------- combos ----------
+let CB = null; // copia local mientras se edita
+function renderCombosEditor(){
+  if (!CB) CB = (Array.isArray(C.combos) ? C.combos : Object.values(C.combos || {})).map(c => ({ q:c.q, p:c.p }));
+  $("c-combosOn").checked = C.combosOn !== false;
+  $("combolist").innerHTML = CB.length ? CB.map((c,i) => {
+    const q = +c.q, p = +c.p, sv = q >= 2 && p > 0 ? q * (+$("c-price").value || C.price) - p : 0;
+    return `<div class="crow" data-ci="${i}">
+      <label>Cantidad<input type="number" min="2" step="1" data-cf="q" value="${esc(c.q)}" placeholder="6"></label>
+      <label>Precio ($)<input type="number" min="0" step="500" data-cf="p" value="${esc(c.p)}" placeholder="10000"></label>
+      <button class="btn small danger" type="button" data-cdel="${i}" style="align-self:flex-end">Quitar</button>
+      ${sv > 0 ? `<span class="sv">El comprador ahorra ${money(sv)}</span>` : ""}</div>`;
+  }).join("") : `<p class="note">Sin combos. Tocá "Agregar combo".</p>`;
+}
+$("combolist").addEventListener("input", e => { const f = e.target.closest("[data-cf]"); if (!f) return; CB[+f.closest("[data-ci]").dataset.ci][f.dataset.cf] = f.value });
+$("combolist").addEventListener("change", () => renderCombosEditor());
+$("combolist").addEventListener("click", e => { const d = e.target.closest("[data-cdel]"); if (d){ CB.splice(+d.dataset.cdel, 1); renderCombosEditor() } });
+$("cadd").onclick = () => { CB.push({ q:"", p:"" }); renderCombosEditor(); $("combolist").lastElementChild?.querySelector("input")?.focus() };
 
 // ---------- premios ----------
 function renderPrizeEditor(){
@@ -475,12 +510,16 @@ $("savecfg").onclick = async () => {
   const cfg = { title: g("title").trim() || "Rifa", price: Math.max(0, +g("price")||0), count: Math.min(10000, Math.max(10, parseInt(g("count"))||1000)),
     goal: Math.max(0, +g("goal")||0), date: g("date"), wa: g("wa").replace(/\D/g,""), alias: g("alias").trim(), holder: g("holder").trim(), method: g("method").trim(), open: $("c-open").checked };
   for (const [k] of TXT) cfg[k] = $("t-"+k).value.trim();
+  cfg.combosOn = $("c-combosOn").checked;
+  cfg.combos = (CB || []).map(c => ({ q: parseInt(c.q,10), p: Math.round(+c.p) })).filter(c => c.q >= 2 && c.p > 0).sort((a,b) => a.q - b.q);
+  if (!cfg.combos.length) cfg.combos = null;
+  CB = null;
   try { await update(ref(db,"config"), cfg); toast("Configuración guardada. Ya la ven todos.") } catch (e) { toast("No se pudo guardar: " + (e.code||e.message)) }
 };
 $("copylink").onclick = () => copy(new URL("./", location.href).href, "Link copiado. Pegalo en WhatsApp o Instagram.");
 $("copylist").onclick = () => {
   const lines = [C.title, ""];
-  groups().slice().sort((a,b)=>a.nums[0]-b.nums[0]).forEach(e => lines.push(`${e.nums.map(fmt).join(", ")} - ${e.name}${e.r.length?` (debe ${money(e.r.length*C.price)})`:" (pagado)"}`));
+  groups().slice().sort((a,b)=>a.nums[0]-b.nums[0]).forEach(e => lines.push(`${e.nums.map(fmt).join(", ")} - ${e.name}${e.r.length?` (debe ${money(debt(e))})`:" (pagado)"}`));
   copy(lines.join("\n"), "Lista copiada");
 };
 function drawRandom(btn, id){

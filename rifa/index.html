@@ -10,7 +10,7 @@
 <meta name="theme-color" content="#1c2840">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Figtree:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="rifa.css?v=4">
+<link rel="stylesheet" href="rifa.css?v=5">
 </head>
 <body>
 <div class="wrap">
@@ -27,6 +27,8 @@
   <section class="winner" id="winner" hidden aria-live="polite"></section>
 
   <details class="prizes" id="prizes" hidden></details>
+
+  <section class="combos" id="combos" hidden></section>
 
   <section class="progress" id="progress"></section>
 
@@ -56,6 +58,8 @@
         <input type="text" id="bname" placeholder="Nombre y apellido" autocomplete="name" maxlength="60">
         <input type="tel" id="btel" placeholder="Celular (ej: 249 4123456)" autocomplete="tel" maxlength="25">
       </div>
+      <p class="deal" id="seldeal" hidden></p>
+      <p class="upsell" id="upsell" hidden></p>
       <div class="row" style="justify-content:space-between">
         <span>Total <b class="big" id="seltotal"></b></span>
         <button class="btn accent" id="reserve">Reservar</button>
@@ -71,7 +75,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, onValue, update, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { txt, prizeList, winMap, prizeLabel } from "./shared.js?v=3";
+import { txt, prizeList, winMap, prizeLabel, combos, cost, costText } from "./shared.js?v=5";
 
 const app = initializeApp({
   apiKey: "AIzaSyCr0VMi3eP5wlk0xVqKjUjSQQk9PdaXhBg",
@@ -85,7 +89,8 @@ const app = initializeApp({
 const db = getDatabase(app), auth = getAuth(app);
 
 const DEF = { title:"Rifa de la Moto", prize:"", price:2000, count:1000, goal:0, alias:"", holder:"", wa:"", date:"", method:"", open:true };
-const MAX_PICK = 30, PAGE = 100;
+const PAGE = 100;
+const maxPick = () => Math.max(30, ...combos(C).map(c => c.q));
 let C = { ...DEF }, N = null, W = {}, uid = null, sel = new Set(), page = 0, busy = false, toastT;
 
 const $ = id => document.getElementById(id);
@@ -114,7 +119,7 @@ onValue(ref(db,"nums"), s => {
 }, () => { $("grid").innerHTML = '<p class="err">No se pudo conectar. Revisá tu internet y recargá.</p>' });
 onValue(ref(db,"winner"), s => { W = winMap(s.val()); renderPrizes(); renderWinner(); renderGrid() });
 
-function renderAll(){ renderHeader(); renderPrizes(); renderProgress(); renderWinner(); renderTabs(); renderGrid(); renderDock(); renderPay(); renderMine() }
+function renderAll(){ renderHeader(); renderPrizes(); renderCombos(); renderProgress(); renderWinner(); renderTabs(); renderGrid(); renderDock(); renderPay(); renderMine() }
 
 function renderHeader(){
   document.title = C.title;
@@ -133,6 +138,26 @@ function renderHeader(){
   $("how").innerHTML = steps.map(t => `<li><span>${esc(t)}</span></li>`).join("");
   $("how").hidden = !steps.length;
   setT("footer", T("footer"));
+}
+function renderCombos(){
+  const box = $("combos"), cs = combos(C);
+  if (!cs.length){ box.hidden = true; return }
+  box.hidden = false;
+  box.innerHTML = `<h2>Combos</h2><div class="cgrid">${cs.map(c => {
+    const sv = c.q * C.price - c.p;
+    return `<button class="combo" data-combo="${c.q}"><span class="q">${c.q} <small>números</small></span><span class="pr">${money(c.p)}</span>${sv > 0 ? `<span class="sv">Ahorrás ${money(sv)}</span>` : ""}<span class="go">Tocá y te elegimos ${c.q} al azar</span></button>`;
+  }).join("")}</div>`;
+}
+function pickCombo(q){
+  if (!N) return;
+  const free = []; for (let i = 0; i < C.count; i++) if (!N[i] && !sel.has(i)) free.push(i);
+  const need = q - sel.size;
+  if (need <= 0){ toast(`Ya tenés ${sel.size} números elegidos`); return }
+  if (free.length < need){ toast("No quedan suficientes números libres"); return }
+  for (let k = 0; k < need; k++){ const j = Math.floor(Math.random() * free.length); sel.add(free.splice(j, 1)[0]) }
+  const first = Math.min(...sel); page = Math.floor(first / PAGE);
+  renderTabs(); renderGrid(); renderDock();
+  toast(`Elegimos ${need} número${need>1?"s":""} al azar. Podés cambiarlos tocándolos.`);
 }
 let prizesOpen = false;
 $("prizes").addEventListener("toggle", e => { prizesOpen = e.target.open });
@@ -222,7 +247,12 @@ function renderDock(){
   d.hidden = false;
   const list = [...sel].sort((x,y)=>x-y);
   $("selchips").textContent = list.map(fmt).join(" · ");
-  $("seltotal").textContent = money(list.length * C.price);
+  const r = cost(list.length, C);
+  $("seltotal").textContent = money(r.total);
+  const deal = $("seldeal");
+  if (r.save > 0){ deal.hidden = false; deal.textContent = `${costText(r)} · ahorrás ${money(r.save)}` } else deal.hidden = true;
+  const up = $("upsell"), next = combos(C).find(c => c.q > list.length && c.q - list.length <= 5);
+  if (next){ const k = next.q - list.length; up.hidden = false; up.innerHTML = `Sumá <b>${k}</b> número${k>1?"s":""} más y pagás ${money(next.p)} por ${next.q}.` } else up.hidden = true;
   $("reserve").textContent = list.length > 1 ? `Reservar ${list.length} números` : "Reservar";
 }
 function renderPay(){
@@ -244,21 +274,21 @@ function renderMine(){
   const gone = mine.filter(n => !N[n] || N[n].u !== uid);
   box.hidden = false;
   let h = `<h2>Tus números</h2><div>${live.map(n=>`<span class="chip ${N[n].s}">${fmt(n)}</span>`).join("")}${gone.map(n=>`<span class="chip x" title="Liberado">${fmt(n)}</span>`).join("")}</div>`;
-  if (pend.length) h += `<p class="note">${pend.length === 1 ? "1 número pendiente" : pend.length+" números pendientes"} de pago: ${money(pend.length*C.price)}. ${C.wa ? "Mandá el comprobante para confirmarlos." : ""}</p>${C.wa ? `<div class="row"><a class="btn small accent" target="_blank" rel="noopener" href="${waLink(pend)}">Mandar comprobante por WhatsApp</a></div>` : ""}`;
+  if (pend.length) h += `<p class="note">${pend.length === 1 ? "1 número pendiente" : pend.length+" números pendientes"} de pago: ${money(cost(live.length, C).total - cost(paid.length, C).total)}. ${C.wa ? "Mandá el comprobante para confirmarlos." : ""}</p>${C.wa ? `<div class="row"><a class="btn small accent" target="_blank" rel="noopener" href="${waLink(pend)}">Mandar comprobante por WhatsApp</a></div>` : ""}`;
   if (paid.length) h += `<p class="note">Confirmados: ${paid.map(fmt).join(", ")}. ¡Gracias!</p>`;
   if (gone.length) h += `<p class="note">Liberados por el organizador: ${gone.map(fmt).join(", ")}.</p>`;
   box.innerHTML = h;
 }
 function waLink(list){
   const name = $("bname").value.trim();
-  const msg = `Hola! Reservé ${list.length>1?"los números":"el número"} ${list.map(fmt).join(", ")} de la rifa "${C.title}" (${money(list.length*C.price)}).${name?` Soy ${name}.`:""} Te paso el comprobante.`;
+  const msg = `Hola! Reservé ${list.length>1?"los números":"el número"} ${list.map(fmt).join(", ")} de la rifa "${C.title}" (${money(cost(list.length, C).total)}).${name?` Soy ${name}.`:""} Te paso el comprobante.`;
   return `https://wa.me/${String(C.wa).replace(/\D/g,"")}?text=${encodeURIComponent(msg)}`;
 }
 
 function pick(n){
   if (N && N[n]) return;
   if (sel.has(n)) sel.delete(n);
-  else { if (sel.size >= MAX_PICK) { toast(`Podés reservar hasta ${MAX_PICK} números por vez`); return } sel.add(n) }
+  else { if (sel.size >= maxPick()) { toast(`Podés reservar hasta ${maxPick()} números por vez`); return } sel.add(n) }
   $("err").hidden = true;
   renderGrid(); renderDock();
 }
@@ -272,6 +302,7 @@ function goTo(n, select){
 document.addEventListener("click", e => {
   const n = e.target.closest("[data-n]"); if (n){ pick(+n.dataset.n); return }
   const p = e.target.closest("[data-p]"); if (p){ page = +p.dataset.p; renderTabs(); renderGrid(); return }
+  const cb = e.target.closest("[data-combo]"); if (cb){ pickCombo(+cb.dataset.combo); return }
   const c = e.target.closest("[data-copy]"); if (c){ copy(C.alias, "Alias copiado"); return }
   if (e.target.closest("#clear")){ sel.clear(); renderGrid(); renderDock(); return }
   if (e.target.closest("#close-ok")){ document.querySelector(".overlay")?.remove(); return }
@@ -319,7 +350,7 @@ $("reserve").onclick = async () => {
 };
 
 function showDone(list){
-  const total = money(list.length * C.price);
+  const total = money(cost(list.length, C).total);
   const o = document.createElement("div"); o.className = "overlay";
   o.innerHTML = `<div class="card" role="dialog" aria-modal="true" aria-labelledby="dt">
     <span class="eyebrow">Reservado</span>

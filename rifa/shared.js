@@ -29,3 +29,29 @@ export const winMap = W =>
   W == null || W === "" ? {} : typeof W === "object" ? W : { main: W };
 
 export const prizeLabel = (p, i) => (p && p.label) || `${i + 1}° premio`;
+
+// Combos: [{q: cantidad, p: precio}] — solo si están activados
+export function combos(C){
+  if (C.combosOn === false) return [];
+  const raw = Array.isArray(C.combos) ? C.combos : Object.values(C.combos || {});
+  return raw.map(c => ({ q: +c.q, p: +c.p })).filter(c => c.q >= 2 && c.p > 0).sort((a, b) => a.q - b.q);
+}
+// Mejor precio para n números combinando combos y sueltos
+export function cost(n, C){
+  const price = +C.price || 0, cs = combos(C);
+  const d = [0], ch = [0];
+  for (let i = 1; i <= n; i++){
+    let best = d[i - 1] + price, pick = 1;
+    for (const c of cs) if (c.q <= i && d[i - c.q] + c.p < best){ best = d[i - c.q] + c.p; pick = c.q }
+    d[i] = best; ch[i] = pick;
+  }
+  const used = {}; let loose = 0;
+  for (let i = n; i > 0; i -= ch[i]) ch[i] === 1 ? loose++ : (used[ch[i]] = (used[ch[i]] || 0) + 1);
+  return { total: d[n], save: n * price - d[n], used, loose };
+}
+// "Combo 6 + 2 sueltos"
+export function costText(r){
+  const parts = Object.entries(r.used).sort((a, b) => b[0] - a[0]).map(([q, k]) => `${k > 1 ? k + "× " : ""}combo ${q}`);
+  if (r.loose) parts.push(`${r.loose} suelto${r.loose > 1 ? "s" : ""}`);
+  return parts.join(" + ");
+}

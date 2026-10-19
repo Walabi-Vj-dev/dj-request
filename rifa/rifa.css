@@ -166,3 +166,26 @@ footer{font-size:12px;color:var(--muted);text-align:center}
 .pwin b{font-family:var(--mono);font-size:16px;font-variant-numeric:tabular-nums}
 .plogo{width:64px;height:64px;max-width:100%;object-fit:contain;background:var(--logo-bg);border-radius:10px;padding:6px;border:1px solid var(--line)}
 @media (max-width:420px){.plogo{width:52px;height:52px}.pcard{gap:10px;padding:10px 12px}}
+
+/* número ganador en la grilla */
+.num.win{position:relative;z-index:1;outline:none;color:#2b1600;border:1.5px solid var(--res);
+  background:linear-gradient(120deg,var(--res),#fff3b0 45%,var(--accent) 100%);background-size:220% 100%;
+  animation:wbg 2.6s ease-in-out infinite,wnum 1.6s ease-in-out infinite}
+.num.win::before{content:"★";position:absolute;top:-9px;right:-7px;font-size:15px;line-height:1;color:var(--res);text-shadow:0 0 3px rgb(0 0 0 / .45);animation:wstar 2.4s ease-in-out infinite}
+@keyframes wnum{0%,100%{transform:scale(1);box-shadow:0 0 0 0 color-mix(in srgb,var(--res) 75%,transparent)}50%{transform:scale(1.08);box-shadow:0 0 0 7px transparent}}
+@keyframes wstar{0%,100%{transform:rotate(0) scale(1)}50%{transform:rotate(25deg) scale(1.25)}}
+
+/* combos */
+.combos{display:flex;flex-direction:column;gap:8px}
+.combos h2{margin:0;font-size:17px;font-weight:700}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr));gap:8px}
+.combo{background:var(--paper);border:1.5px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left}
+.combo:hover{border-color:var(--sel)}
+.combo .q{font-family:var(--display);font-size:22px;line-height:1.05}
+.combo .q small{font-family:var(--body);font-size:13px;font-weight:600}
+.combo .pr{font-family:var(--mono);font-weight:600;font-size:16px;font-variant-numeric:tabular-nums}
+.combo .sv{font-size:12px;font-weight:700;color:var(--sold)}
+.combo .go{font-size:12px;color:var(--muted)}
+.deal{font-size:13px;font-weight:600;color:var(--sold);margin:0}
+.upsell{font-size:13px;margin:0;color:var(--ink)}
+.upsell b{color:var(--sel)}
